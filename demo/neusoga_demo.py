@@ -259,17 +259,17 @@ def download_modelnet40(dataset_root: Path) -> dict[str, str]:
                     target_path.parent.mkdir(parents=True, exist_ok=True)
                     with archive.open(member, "r") as source, target_path.open("wb") as destination:
                         shutil.copyfileobj(source, destination)
-        nested_root = dataset_root / "ModelNet40"
-        if not nested_root.exists():
+        detected_root: Path | None = extract_root if extract_root.exists() else None
+        if detected_root is None:
             candidate_names = sorted(
                 name for name in top_level_dirs if name.lower().startswith("modelnet40")
             )
             if candidate_names:
-                nested_root = dataset_root / candidate_names[0]
-            if nested_root != extract_root and nested_root.exists():
+                detected_root = dataset_root / candidate_names[0]
+            if detected_root is not None and detected_root != extract_root and detected_root.exists():
                 if extract_root.exists():
                     shutil.rmtree(extract_root)
-                nested_root.rename(extract_root)
+                detected_root.rename(extract_root)
         if not extract_root.exists():
             raise RuntimeError(
                 "ModelNet40 archive was extracted, but the dataset root could not be identified."
