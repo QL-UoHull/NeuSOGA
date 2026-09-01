@@ -219,7 +219,7 @@ def download_modelnet40(dataset_root: Path) -> dict[str, str]:
     if not archive_path.exists():
         try:
             partial_archive_path.unlink(missing_ok=True)
-            with urllib.request.urlopen(MODELNET40_URL) as response:
+            with urllib.request.urlopen(MODELNET40_URL, timeout=60) as response:
                 with partial_archive_path.open("wb") as handle:
                     shutil.copyfileobj(response, handle)
             partial_archive_path.replace(archive_path)
@@ -248,7 +248,17 @@ def download_modelnet40(dataset_root: Path) -> dict[str, str]:
                     ) from exc
                 if member_path.parts:
                     top_level_dirs.add(member_path.parts[0])
-                archive.extract(member, dataset_root)
+                mode = (member.external_attr >> 16) & 0o170000
+                if mode == 0o120000:
+                    raise RuntimeError(
+                        f"Symlink entries are not allowed in the ModelNet40 archive: {member.filename}"
+                    )
+                if member.is_dir():
+                    target_path.mkdir(parents=True, exist_ok=True)
+                else:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    with archive.open(member, "r") as source, target_path.open("wb") as destination:
+                        shutil.copyfileobj(source, destination)
         nested_root = dataset_root / "ModelNet40"
         if not nested_root.exists():
             candidate_names = sorted(
@@ -310,16 +320,16 @@ def connected_components(adjacency: list[list[int]]) -> list[list[int]]:
 
 
 def mean(values: Iterable[float]) -> float:
-    values = list(values)
-    return sum(values) / len(values) if values else 0.0
+    items = list(values)
+    return sum(items) / len(items) if items else 0.0
 
 
 def std(values: Iterable[float]) -> float:
-    values = list(values)
-    if not values:
+    items = list(values)
+    if not items:
         return 0.0
-    average = mean(values)
-    return math.sqrt(sum((value - average) ** 2 for value in values) / len(values))
+    average = mean(items)
+    return math.sqrt(sum((value - average) ** 2 for value in items) / len(items))
 
 
 def classify_component(component_points: list[tuple[float, float, float]]) -> tuple[str, str, dict[str, float | list[float]]]:
