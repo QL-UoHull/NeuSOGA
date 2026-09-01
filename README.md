@@ -138,6 +138,7 @@ python demo/neusoga_demo.py --output-dir outputs/demo
 ### Use a local point cloud file
 
 Supported inputs include simple whitespace- or comma-separated `x y z` text files, plus `.off` files.
+For portability, very large input clouds are deterministically downsampled inside the demo before topology construction.
 
 ```bash
 python demo/neusoga_demo.py \

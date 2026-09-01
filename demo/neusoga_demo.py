@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Iterable
 
 MODELNET40_URL = "https://modelnet.cs.princeton.edu/ModelNet40.zip"
+MAX_INPUT_POINTS = 5000
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,7 +59,7 @@ def parse_args() -> argparse.Namespace:
         "--device",
         choices=("cpu", "cuda"),
         default="cpu",
-        help="Execution device note recorded in metadata.",
+        help="Device intent recorded in run metadata only; no GPU kernels are invoked in this demo.",
     )
     parser.add_argument(
         "--neighborhood-radius",
@@ -203,10 +204,21 @@ def load_point_cloud(path: Path) -> list[tuple[float, float, float]]:
 def download_modelnet40(dataset_root: Path) -> dict[str, str]:
     dataset_root.mkdir(parents=True, exist_ok=True)
     archive_path = dataset_root / "ModelNet40.zip"
+    partial_archive_path = dataset_root / "ModelNet40.zip.partial"
     extract_root = dataset_root / "ModelNet40"
 
     if not archive_path.exists():
-        urllib.request.urlretrieve(MODELNET40_URL, archive_path)
+        try:
+            partial_archive_path.unlink(missing_ok=True)
+            with urllib.request.urlopen(MODELNET40_URL) as response:
+                with partial_archive_path.open("wb") as handle:
+                    shutil.copyfileobj(response, handle)
+            partial_archive_path.replace(archive_path)
+        except Exception as exc:
+            partial_archive_path.unlink(missing_ok=True)
+            raise RuntimeError(
+                "Failed to download ModelNet40. Remove any partial archive and retry when network access is available."
+            ) from exc
 
     if not extract_root.exists():
         with zipfile.ZipFile(archive_path, "r") as archive:
@@ -342,6 +354,29 @@ def select_components(components: list[list[int]], min_size: int) -> list[list[i
     return [max(components, key=len)] if components else []
 
 
+def downsample_points(
+    points: list[tuple[float, float, float]], labels: list[str], max_points: int
+) -> tuple[list[tuple[float, float, float]], list[str], dict[str, int] | None]:
+    if len(points) <= max_points:
+        return points, labels, None
+
+    indices = [
+        min(math.floor(index * len(points) / max_points), len(points) - 1)
+        for index in range(max_points)
+    ]
+    sampled_points = [points[index] for index in indices]
+    sampled_labels = [labels[index] for index in indices]
+    return (
+        sampled_points,
+        sampled_labels,
+        {
+            "original_points": len(points),
+            "retained_points": len(sampled_points),
+            "max_points": max_points,
+        },
+    )
+
+
 def write_outputs(
     output_dir: Path,
     points: list[tuple[float, float, float]],
@@ -438,6 +473,9 @@ def main() -> None:
     if args.input:
         points = load_point_cloud(args.input)
         labels = ["input_point"] * len(points)
+        points, labels, downsampling = downsample_points(points, labels, MAX_INPUT_POINTS)
+        if downsampling:
+            metadata["input_downsampling"] = downsampling
         source = str(args.input.resolve())
     else:
         points, labels = generate_synthetic_scene(args.num_points)
