@@ -1,0 +1,2 @@
+# The runnable NeuSOGA demo intentionally uses only the Python standard library.
+# No third-party packages are required for the reproducibility example in demo/neusoga_demo.py.
