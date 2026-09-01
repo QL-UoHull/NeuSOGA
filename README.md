@@ -6,15 +6,15 @@
 
 **NeuSOGA** (**Neu**ro-**S**ymbolic Geometric **A**bstraction) is a research prototype for transforming raw observations into compact symbolic mathematical descriptions through **topology-guided geometric abstraction**.
 
-**Keywords:** neuro-symbolic learning, geometric abstraction, topology-guided segmentation, symbolic representation learning, 3D perception, reproducible research, research prototype, arXiv-linked repository.
+**Keywords:** neuro-symbolic learning, geometric abstraction, topology-guided segmentation, symbolic representation learning, 3D perception, reproducible research, research prototype, arXiv-linked submission
 
 > Core idea: **Observation → Topology → Geometry → Symbol**
 
-This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a polished project overview plus a lightweight runnable demo derived from the uploaded NeuSOGA prototype, while making explicit which resources must still be obtained externally.
+This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a lightweight runnable demo and supporting documentation while intentionally excluding heavyweight benchmark assets.
 
 ## Research motivation
 
-Many modern perception systems stop at latent features or task-specific predictions. NeuSOGA instead targets **explicit symbolic structure**: observations are first organized topologically, then abstracted into geometric primitives, and finally represented symbolically in a form that is easier to inspect, reason about, and reuse in downstream neuro-symbolic workflows.
+Many modern perception systems stop at latent features or task-specific predictions. NeuSOGA instead targets **explicit symbolic structure**: observations are first organized topologically, then abstracted geometrically, and finally distilled into concise symbolic forms that can be interpreted and reused downstream.
 
 The repository therefore emphasizes:
 
@@ -107,6 +107,40 @@ python -m pip install -r requirements-demo.txt
 - **SAM checkpoints**: not bundled in the repository. If your extended workflow depends on Segment Anything, download the checkpoint separately and pass its path explicitly.
 - **GPU support**: the included demo runs on CPU. A future larger-scale implementation may benefit from CUDA/PyTorch acceleration, but that is not required for the reproducibility example included here.
 
+## Colab and Jupyter Notebook demos
+
+To make NeuSOGA easier to test directly, you can run notebook-based demos in **Google Colab** or locally with **Jupyter Notebook**.
+
+### Required first cell (Meta SAM setup)
+
+NeuSOGA uses Meta's Segment Anything Model (SAM). In Colab, run this block in the **first cell** to install dependencies and download the checkpoint weights:
+
+```bash
+!pip install rembg onnxruntime
+!pip install opencv-python matplotlib
+!pip install git+https://github.com/facebookresearch/segment-anything.git
+!wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+```
+
+### Google Colab workflow
+
+1. Open your NeuSOGA demo notebook in Colab.
+2. Paste and run the required SAM setup block above as the first cell.
+3. Run the rest of the notebook cells in order.
+4. (Recommended) Enable GPU runtime in Colab: **Runtime → Change runtime type → GPU**.
+
+### Local Jupyter Notebook workflow
+
+1. Start Jupyter from the repository root.
+2. Open the NeuSOGA demo notebook.
+3. Run the same SAM setup block in the first cell.
+4. Execute the remaining cells top-to-bottom.
+
+### Suggested notebook filenames
+
+- `notebooks/NeuSOGA_Demo.ipynb` — end-to-end local demo.
+- `notebooks/NeuSOGA_Colab_Demo.ipynb` — Colab-friendly variant.
+
 ## Dependency summary
 
 ### Runnable demo
@@ -125,7 +159,7 @@ Depending on how the full research codebase evolves, a larger implementation may
 - Open3D / point-cloud tooling
 - Segment Anything (SAM) and its checkpoint files
 
-These heavier dependencies are **not required** to run the current demo.
+These heavier dependencies are **not required** to run the current demo script, but are relevant for notebook workflows that integrate SAM.
 
 ## Demo usage
 
