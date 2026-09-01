@@ -232,20 +232,30 @@ def download_modelnet40(dataset_root: Path) -> dict[str, str]:
     if not extract_root.exists():
         with zipfile.ZipFile(archive_path, "r") as archive:
             resolved_root = dataset_root.resolve()
+            top_level_dirs: set[str] = set()
             for member in archive.infolist():
-                target_path = (dataset_root / member.filename).resolve()
+                member_path = Path(member.filename)
+                if member_path.is_absolute() or ".." in member_path.parts:
+                    raise RuntimeError(
+                        f"Unsafe path detected while extracting ModelNet40 archive: {member.filename}"
+                    )
+                target_path = (dataset_root / member_path).resolve()
                 try:
                     target_path.relative_to(resolved_root)
                 except ValueError as exc:
                     raise RuntimeError(
                         f"Unsafe path detected while extracting ModelNet40 archive: {member.filename}"
                     ) from exc
-            archive.extractall(dataset_root)
+                if member_path.parts:
+                    top_level_dirs.add(member_path.parts[0])
+                archive.extract(member, dataset_root)
         nested_root = dataset_root / "ModelNet40"
         if not nested_root.exists():
-            extracted_dirs = [path for path in dataset_root.iterdir() if path.is_dir()]
-            if extracted_dirs:
-                nested_root = extracted_dirs[0]
+            candidate_names = sorted(
+                name for name in top_level_dirs if name.lower().startswith("modelnet40")
+            )
+            if candidate_names:
+                nested_root = dataset_root / candidate_names[0]
             if nested_root != extract_root and nested_root.exists():
                 if extract_root.exists():
                     shutil.rmtree(extract_root)
