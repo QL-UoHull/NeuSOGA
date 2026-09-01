@@ -204,11 +204,12 @@ These files are intended to make it easy for research readers to inspect how the
 ## Citation
 
 If you use NeuSOGA in academic work, please cite the associated paper once the public arXiv identifier is available.
+The BibTeX block below is a **template** and should be updated with the final author list, citation key, and arXiv identifier when the manuscript is public.
 
 ```bibtex
-@misc{neusoga2026,
+@misc{neusoga_placeholder_2026,
   title        = {NeuSOGA: Neuro-Symbolic Geometric Abstraction from Observations to Symbolic Mathematical Representations},
-  author       = {Li, Q. and collaborators},
+  author       = {Li, Q.},
   year         = {2026},
   note         = {arXiv submission context; update with public identifier on release},
   howpublished = {\url{https://github.com/QL-UoHull/NeuSOGA}}
