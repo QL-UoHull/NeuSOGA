@@ -96,6 +96,7 @@ def even_split(total: int, parts: int) -> list[int]:
 
 
 def generate_plane(count: int) -> list[tuple[float, float, float]]:
+    """Generate a planar patch translated left to stay disconnected from other primitives."""
     rows = max(4, int(math.sqrt(count)))
     cols = max(4, math.ceil(count / rows))
     points: list[tuple[float, float, float]] = []
@@ -249,6 +250,10 @@ def download_modelnet40(dataset_root: Path) -> dict[str, str]:
                 if extract_root.exists():
                     shutil.rmtree(extract_root)
                 nested_root.rename(extract_root)
+        if not extract_root.exists():
+            raise RuntimeError(
+                "ModelNet40 archive was extracted, but the dataset root could not be identified."
+            )
 
     return {
         "archive": str(archive_path.resolve()),
