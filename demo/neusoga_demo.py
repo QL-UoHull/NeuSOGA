@@ -7,6 +7,8 @@ using either a deterministic synthetic point cloud or a simple user-provided fil
 
 It is intentionally lightweight and CPU-friendly. It does not claim full
 benchmark reproduction for the accompanying research project.
+The topology stage uses a naive O(n^2) neighborhood graph, so the demo is
+intended for small to moderate inputs rather than large-scale evaluation.
 """
 
 from __future__ import annotations
@@ -27,7 +29,13 @@ MAX_INPUT_POINTS = 5000
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run a lightweight NeuSOGA demo.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run a lightweight NeuSOGA demo. "
+            "The topology stage uses a naive O(n^2) radius graph and is intended "
+            "for small to moderate inputs."
+        )
+    )
     parser.add_argument(
         "--input",
         type=Path,
@@ -180,7 +188,7 @@ def load_off_point_cloud(path: Path) -> list[tuple[float, float, float]]:
     if not lines or lines[0] not in {"OFF", "COFF"}:
         raise ValueError(f"{path} is not a valid OFF file.")
     counts = lines[1].split()
-    if len(counts) < 1:
+    if len(counts) < 3:
         raise ValueError(f"OFF header in {path} is incomplete.")
     vertex_count = int(counts[0])
     points: list[tuple[float, float, float]] = []
