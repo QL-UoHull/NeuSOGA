@@ -12,6 +12,18 @@
 
 This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a lightweight runnable demo and supporting documentation while intentionally excluding heavyweight benchmark assets.
 
+## Pipeline Overview
+
+![NeuSOGApeline.png
+
+Neuro-Symbolic Geometric Abstraction pipeline from observations to symbolic mathematical representations.
+
+<p align="center">
+  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" alt="NeuSOGA PipelineeuSOGA pipeline: observations → geometric abstraction → symbolic representation.</em>
+</p>
+
+
+
 ## Research motivation
 
 Many modern perception systems stop at latent features or task-specific predictions. NeuSOGA instead targets **explicit symbolic structure**: observations are first organized topologically, then abstracted geometrically, and finally distilled into concise symbolic forms that can be interpreted and reused downstream.
