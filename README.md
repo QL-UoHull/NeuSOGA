@@ -10,10 +10,10 @@
 
 > Core idea: **Observation → Topology → Geometry → Symbol**
 <p align="center">
-2
 <img src="assets/Neuro-symbolic-pipeline.jpg" alt="NeuSOGA PipelineeuSOGA pipeline: observations → geometric abstraction → symbolic representation.</em>
-3
 </p>
+
+Neuro-symbolic-pipeline.jp
 
 This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a lightweight runnable demo and supporting documentation while intentionally excluding heavyweight benchmark assets.
 
