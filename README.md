@@ -9,6 +9,11 @@
 **Keywords:** neuro-symbolic learning, geometric abstraction, topology-guided segmentation, symbolic representation learning, 3D perception, reproducible research, research prototype, arXiv-linked submission
 
 > Core idea: **Observation → Topology → Geometry → Symbol**
+<p align="center">
+2
+<img src="assets/Neuro-symbolic-pipeline.jpg" alt="NeuSOGA PipelineeuSOGA pipeline: observations → geometric abstraction → symbolic representation.</em>
+3
+</p>
 
 This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a lightweight runnable demo and supporting documentation while intentionally excluding heavyweight benchmark assets.
 
