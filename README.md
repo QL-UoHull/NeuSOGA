@@ -10,7 +10,7 @@
 
 > Core idea: **Observation → Topology → Geometry → Symbol**
 <p align="center">
-<img src="assets/Neuro-symbolic-pipeline.jpg" alt="NeuSOGA PipelineeuSOGA pipeline: observations → geometric abstraction → symbolic representation.</em>
+  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" alt="NeuSOGA PipelineeuSOGA pipeline: observations → geometric abstraction → symbolic representation.</em>
 </p>
 
 Neuro-symbolic-pipeline.jp
