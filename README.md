@@ -252,6 +252,7 @@ The BibTeX block below is a **template** and should be updated with the final au
   author={Li, Qingde and others},
   journal={arXiv preprint arXiv:2609.01408},
   year={2026}
+  url = {https://arxiv.org/abs/2609.01408}
 }
 ```
 
