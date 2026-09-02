@@ -10,7 +10,7 @@
 
 > Core idea: **Observation → Topology → Geometry → Symbol**
 <p align="center">
-  <img src="assets/Neuro-symbolic-pipeline.jpg" widthcenter">
+  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" widthcenter">
   <em>Overview of the NeuSOGA framework.</em>
 </p>
 
