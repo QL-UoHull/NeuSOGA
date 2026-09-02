@@ -248,15 +248,10 @@ The BibTeX block below is a **template** and should be updated with the final au
 
 ```bibtex
 @article{li2026neusoga,
-2
-title={Neuro-Symbolic Geometric Abstraction: From Observations to Symbolic Mathematical Representations},
-3
-author={Li, Qingde and others},
-4
-journal={arXiv preprint arXiv:2609.01408},
-5
-year={2026}
-6
+  title={Neuro-Symbolic Geometric Abstraction: From Observations to Symbolic Mathematical Representations},
+  author={Li, Qingde and others},
+  journal={arXiv preprint arXiv:2609.01408},
+  year={2026}
 }
 ```
 
