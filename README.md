@@ -1,6 +1,9 @@
 # NeuSOGA
 
 ![License: MIT](https://img.shields.io/badge/License-Mtatus: Research Prototype](https://img.shields.io/badge/status-research%https://img.shields.io/badge/arXiv-2609.01408-b31b Neuro-Symbolic Geometric Abstraction (NeuSOGA)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)
+![arXiv Submission](https://img.shields.io/badge/arXiv-submission%20context-b31b1b.svg)
 
 **From Observations to Symbolic Mathematical Representations**
 
@@ -21,9 +24,8 @@ Symbol (S)
 where observations are progressively transformed into topological abstractions, geometric abstractions, and ultimately symbolic mathematical representations.
 
 <p align="center">
-  assets/figures/Neuro-symbolic-pipeline.jpg
-  <br>
-  <em>Figure 1. Overview of the NeuSOGA abstraction hierarchy.</em>
+  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" widthcenter">
+  <em>Overview of the NeuSOGA framework.</em>
 </p>
 
 ---
