@@ -9,6 +9,8 @@
 
 NeuSOGA is a neuro-symbolic framework for transforming observations into explicit symbolic mathematical representations through topology-guided geometric abstraction.
 
+NeuSOGA employs the Implicit Area Spline formulation (Li and Tian, ACM Transactions on Graphics, 2009) as its symbolic representation layer, enabling the generation of explicit analytical models from topology-guided geometric abstractions.
+
 The framework implements the abstraction hierarchy:
 
 ```text
@@ -104,23 +106,39 @@ Dense observations are compressed into compact and interpretable geometric repre
 
 ## 4. Symbol (S)
 
-The symbolic stage converts geometric abstractions into explicit mathematical representations.
+The final stage of NeuSOGA transforms sparse geometric abstractions into explicit symbolic mathematical representations using the **Implicit Area Spline** formulation introduced by Li and Tian in *ACM Transactions on Graphics (TOG), 2009*.
 
-NeuSOGA employs Implicit Area Splines to generate:
+Unlike conventional parametric representations such as Bézier curves, B-splines, and NURBS, which primarily describe boundary trajectories, the Implicit Area Spline formulation represents spatial regions directly through analytical implicit fields. As a result, the generated representation is not merely a geometric approximation, but an explicit mathematical object suitable for analysis, interpretation, and symbolic manipulation.
 
-- Analytical implicit representations
-- Arbitrary-order smoothness
-- Additive composition
-- Closed-form evaluation
-- Symbolic geometric models
-
-The final representation is expressed as:
+Given a sparse control polygon produced by the geometric abstraction stage, NeuSOGA constructs a continuous analytical field whose boundary is represented by
 
 ```text
 F(x,y) = 0
 ```
 
-providing an explicit symbolic mathematical description of the observed shape.
+This symbolic representation possesses several important properties:
+
+- **Arbitrary-order smoothness** through controllable \(C^n\) continuity.
+- **Closed-form analytical evaluation** without numerical reconstruction.
+- **Additive composition**, enabling complex structures to be represented through algebraic combinations of simpler components.
+- **Explicit symbolic accessibility**, allowing direct inspection and mathematical analysis.
+- **Topology-preserving representation**, including support for internal voids and complex geometric structure.
+
+Within NeuSOGA, the Implicit Area Spline serves as the symbolic endpoint of the
+
+```text
+Observation (O)
+        ↓
+Topology (T)
+        ↓
+Geometry (G)
+        ↓
+Symbol (S)
+```
+
+abstraction hierarchy.
+
+The resulting symbolic model therefore encodes geometric knowledge in an explicit analytical form rather than within latent neural parameters. This distinction is central to NeuSOGA's objective of transforming observations into symbolic mathematical representations and providing explainability through explicit representation.
 
 ---
 
@@ -450,6 +468,16 @@ https://arxiv.org/abs/2609.01408
   journal={arXiv preprint arXiv:2609.01408},
   year={2026},
   url={https://arxiv.org/abs/2609.01408}
+}
+
+@article{li20092d,
+  title={2D Piecewise Algebraic Splines for Implicit Modeling},
+  author={Li, Qiang and Tian, Jie},
+  journal={ACM Transactions on Graphics (TOG)},
+  volume={28},
+  number={2},
+  pages={1--19},
+  year={2009}
 }
 ```
 
