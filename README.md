@@ -2,7 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MITSE)
 [![Status: Research Prototype](https://img.shields.io/badge/status-researchd)
-[![arXiv](https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg)](https://arxiv.org/abs/2609.014
+[![arXiv](https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg)](
+https://doi.org/10.48550/arXiv.2609.01408)
 
 **Observation → Topology → Geometry → Symbol**
 
