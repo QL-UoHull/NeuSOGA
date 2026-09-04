@@ -1,7 +1,10 @@
 # NeuSOGA
 
-[![License: MIT](https://img.shields.ioT-green.svg](LICENSE)
-![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototypeg.shields.io/badge/arXiv-2609.01408-B31B1B.svg?logo=arxiv)](https://arxiv.org/abs/2609.014rvation → Topology → Geometry → Symbol**
+[![License: MIT](https://img.shields.io/badge/License-MITSE)
+[![Status: Research Prototype](https://img.shields.io/badge/status-researchd)
+[![arXiv](https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg)](https://arxiv.org/abs/2609.014
+
+**Observation → Topology → Geometry → Symbol**
 
 A neuro-symbolic framework for transforming observations into
 explicit symbolic mathematical representations.
