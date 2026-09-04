@@ -1,16 +1,11 @@
 # NeuSOGA
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) 
-[![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)](https://doi.org/10.48550/arXiv.2609.01408))
-[![arXiv](https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg)](
-https://doi.org/10.48550/arXiv.2609.01408)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](: Research Prototype](https://img.shields.io/badge/status-research%20prototypeL-UoHull/NeuSOGA)
+[![arXiv](https://img.shields.io/badge/arXiv-2609.01408-B31B1B.svg?logo=arxiv)](https://arxiv09.01408)
 
-**Observation → Topology → Geometry → Symbol**
+# Neuro-Symbolic Geometric Abstraction (NeuSOGA)
 
-A neuro-symbolic framework for transforming observations into
-explicit symbolic mathematical representations.
-
-**From Observations to Symbolic Mathematical Representations**
+### From Observations to Symbolic Mathematical Representations
 
 NeuSOGA is a neuro-symbolic framework for transforming observations into explicit symbolic mathematical representations through topology-guided geometric abstraction.
 
@@ -28,18 +23,16 @@ Symbol (S)
 
 where observations are progressively transformed into topological abstractions, geometric abstractions, and ultimately symbolic mathematical representations.
 
-<p align="center">
-  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" widthcenter">
-  <em>Overview of the NeuSOGA framework.</em>
-</p>
+<p align="center"> <img src="assets/figures/Neuro-symbolic-pipeline.jpg" widthcenter"> <em>Overview of the NeuSOGA framework.</em> </p>
+
 
 ---
 
 # Research Motivation
 
-Many modern AI systems achieve impressive perceptual performance by learning latent representations from large-scale data. While effective for recognition and prediction, such representations are often difficult to interpret, manipulate, or analyse directly.
+Modern AI systems often encode knowledge within latent neural representations. While highly effective for perception and prediction, these representations are typically difficult to inspect, manipulate, or analyse mathematically.
 
-**NeuSOGA** explores an alternative paradigm:
+NeuSOGA explores an alternative paradigm:
 
 ```text
 Observation
@@ -51,7 +44,7 @@ Geometry
 Symbol
 ```
 
-Rather than learning geometry exclusively through statistical optimization, NeuSOGA extracts topology-aware structure, performs adaptive geometric abstraction, and synthesizes explicit symbolic mathematical representations through analytical geometry.
+Rather than learning geometry solely through statistical optimization, NeuSOGA extracts topology-aware structure, performs adaptive geometric abstraction, and synthesizes explicit symbolic mathematical representations using analytical geometry.
 
 The central research question is:
 
@@ -84,10 +77,10 @@ Intrinsic structure is extracted through topology-guided analysis.
 NeuSOGA computes:
 
 - Euclidean Distance Transforms (EDT)
-- topology-aware structural cores
-- distance-field maxima
-- internal void structures
-- global spatial organization
+- Topology-aware structural cores
+- Distance-field maxima
+- Internal void structures
+- Global spatial organization
 
 The resulting topology nodes provide compact abstractions of object structure and subsequently guide perception.
 
@@ -99,13 +92,13 @@ Topology-aware structure is transformed into sparse geometric abstractions.
 
 The geometry stage combines:
 
-- topology-guided Segment Anything (SAM) prompting
-- contour extraction
-- adaptive multi-scale scale-space abstraction
-- hybrid coarse-to-fine boundary refinement
-- sparse control-polygon generation
+- Topology-guided Segment Anything (SAM) prompting
+- Contour extraction
+- Adaptive multi-scale scale-space abstraction
+- Hybrid coarse-to-fine boundary refinement
+- Sparse control-polygon generation
 
-Dense geometric observations are compressed into compact and interpretable geometric representations while preserving important structural detail.
+Dense observations are compressed into compact and interpretable geometric representations while preserving important structural detail.
 
 ---
 
@@ -115,11 +108,11 @@ The symbolic stage converts geometric abstractions into explicit mathematical re
 
 NeuSOGA employs Implicit Area Splines to generate:
 
-- analytical implicit representations
-- arbitrary-order smoothness
-- additive composition
-- closed-form evaluation
-- symbolic geometric models
+- Analytical implicit representations
+- Arbitrary-order smoothness
+- Additive composition
+- Closed-form evaluation
+- Symbolic geometric models
 
 The final representation is expressed as:
 
@@ -127,7 +120,7 @@ The final representation is expressed as:
 F(x,y) = 0
 ```
 
-providing an explicit symbolic description of the observed shape.
+providing an explicit symbolic mathematical description of the observed shape.
 
 ---
 
@@ -152,16 +145,15 @@ NeuSOGA/
 └── CITATION.cff
 ```
 
-The repository contains the reference implementation accompanying the NeuSOGA paper.
+This repository contains the reference implementation accompanying the NeuSOGA paper.
 
 ---
 
 # Installation and Setup
 
-The current NeuSOGA implementation was developed and validated
-primarily in **Google Colab**. The easiest way to reproduce the
-results is therefore through Colab or a compatible Jupyter
-environment.
+NeuSOGA was developed and validated primarily in **Google Colab**. The easiest way to reproduce the results is through Colab or a compatible Jupyter environment.
+
+---
 
 ## Google Colab Setup
 
@@ -174,19 +166,27 @@ Run the following commands in the first notebook cell:
 !wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 ```
 
-The downloaded checkpoint
+The downloaded checkpoint:
 
 ```text
 sam_vit_b_01ec64.pth
 ```
 
-will be automatically used by the NeuSOGA pipeline.
+will be used automatically by the NeuSOGA pipeline.
+
+### Recommended Colab Configuration
+
+```text
+Runtime → Change runtime type → GPU
+```
+
+GPU acceleration is recommended but not required.
 
 ---
 
 ## Local Python Environment
 
-Clone the repository:
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/QL-UoHull/NeuSOGA.git
@@ -194,9 +194,9 @@ git clone https://github.com/QL-UoHull/NeuSOGA.git
 cd NeuSOGA
 ```
 
-Create and activate a virtual environment:
+### 2. Create a Virtual Environment
 
-### Linux / macOS
+#### Linux / macOS
 
 ```bash
 python -m venv .venv
@@ -204,7 +204,7 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-### Windows
+#### Windows
 
 ```cmd
 python -m venv .venv
@@ -212,7 +212,7 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
-Install the required packages:
+### 3. Install Dependencies
 
 ```bash
 pip install rembg
@@ -220,34 +220,15 @@ pip install opencv-python matplotlib
 pip install git+https://github.com/facebookresearch/segment-anything.git
 ```
 
-Download the SAM checkpoint:
+### 4. Download SAM Checkpoint
 
 ```bash
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 ```
 
-or manually download it from:
+or manually download from:
 
 https://github.com/facebookresearch/segment-anything
-
----
-
-## Python Dependencies
-
-The current implementation requires:
-
-- Python 3.10+
-- NumPy
-- SciPy
-- OpenCV
-- Matplotlib
-- scikit-image
-- h5py
-- Numba
-- PyTorch
-- Segment Anything (SAM)
-- rembg
-
 
 ---
 
@@ -255,28 +236,23 @@ The current implementation requires:
 
 ## ModelNet40 Dataset
 
-NeuSOGA automatically downloads and extracts the ModelNet40
-dataset when executed for the first time.
+NeuSOGA automatically downloads and extracts the ModelNet40 dataset when executed for the first time.
 
-The dataset is not bundled with this repository.
-
-No manual download is required.
+The dataset is not bundled with this repository and no manual download is required.
 
 ---
 
 ## Segment Anything (SAM)
 
-NeuSOGA employs topology-guided perception using Meta's
-Segment Anything Model (SAM).
+NeuSOGA employs topology-guided perception using Meta's Segment Anything Model.
 
-The following checkpoint is required:
+Required checkpoint:
 
 ```text
 sam_vit_b_01ec64.pth
 ```
 
-The checkpoint is not distributed with this repository and
-must be downloaded separately:
+Download:
 
 ```bash
 wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
@@ -286,7 +262,7 @@ wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 
 ## Hardware Requirements
 
-The implementation automatically detects available hardware:
+The framework automatically detects:
 
 ```text
 CPU
@@ -295,30 +271,41 @@ CUDA GPU
 
 CPU execution is fully supported.
 
-For large-scale robustness experiments across all 40
-ModelNet40 categories, GPU acceleration is recommended but
-not required.
-`
+GPU acceleration is recommended for large-scale robustness experiments but is not required.
 
 ---
 
 # Running NeuSOGA
 
-Execute:
+## Google Colab
+
+After executing the installation cell:
+
+```python
+!python neusoga_demo.py
+```
+
+or execute the notebook cells sequentially.
+
+---
+
+## Local Execution
+
+Run:
 
 ```bash
-python demo/neusoga_demo.py
+python neusoga_demo.py
 ```
 
 The script automatically:
 
-1. Downloads ModelNet40 if required.
+1. Downloads ModelNet40 (if required).
 2. Loads SAM.
 3. Processes representative objects from all 40 ModelNet40 categories.
 4. Generates arbitrary-view projections along:
 
 ```text
-[1,1,1]
+[1, 1, 1]
 ```
 
 5. Executes the complete:
@@ -327,7 +314,7 @@ The script automatically:
 O → T → G → S
 ```
 
-abstraction pipeline.
+abstraction hierarchy.
 
 ---
 
@@ -352,7 +339,60 @@ For each object, NeuSOGA generates an eight-stage visualization illustrating:
 8. Symbolic Boundary F(x,y)=0 (S)
 ```
 
-These visualizations provide a transparent illustration of how symbolic mathematical representations emerge from geometric observations.
+These visualizations provide a transparent view of how symbolic mathematical representations emerge from geometric observations.
+
+---
+
+# Colab and Jupyter Notebook Workflows
+
+## Google Colab
+
+Recommended workflow:
+
+1. Open the notebook in Colab.
+2. Run the dependency installation cell shown above.
+3. Ensure the SAM checkpoint has been downloaded.
+4. Enable GPU runtime (optional but recommended).
+5. Execute all notebook cells sequentially.
+
+---
+
+## Local Jupyter Notebook
+
+Launch Jupyter:
+
+```bash
+jupyter notebook
+```
+
+or
+
+```bash
+jupyter lab
+```
+
+Then:
+
+1. Open the desired NeuSOGA notebook.
+2. Install the required dependencies.
+3. Download the SAM checkpoint.
+4. Execute notebook cells in order.
+
+---
+
+## Suggested Notebooks
+
+```text
+notebooks/NeuSOGA_Demo.ipynb
+```
+
+End-to-end demonstration of the NeuSOGA pipeline.
+
+```text
+notebooks/NeuSOGA_Robustness.ipynb
+```
+
+Robustness evaluation across object categories and viewpoints.
 
 ---
 
@@ -361,12 +401,12 @@ These visualizations provide a transparent illustration of how symbolic mathemat
 The current implementation evaluates NeuSOGA across:
 
 - 40 object categories from ModelNet40
-- non-canonical viewing directions
-- arbitrary-view projection geometry
-- topology-aware segmentation
-- symbolic representation generation
+- Arbitrary-view projections
+- Topology-aware segmentation
+- Adaptive geometric abstraction
+- Symbolic mathematical representation formation
 
-The generated visualizations demonstrate the stability of the abstraction hierarchy across diverse object classes and viewing conditions.
+The resulting visualizations demonstrate that the abstraction hierarchy remains stable across diverse geometric structures and viewing conditions.
 
 ---
 
@@ -396,11 +436,7 @@ The generated symbolic models can be inspected, edited, analysed, and evaluated 
 
 arXiv:
 
-```text
-arXiv:2609.01408
-```
-
-(Update if the identifier changes.)
+https://arxiv.org/abs/2609.01408
 
 ---
 
@@ -410,9 +446,10 @@ arXiv:2609.01408
 @article{li2026neusoga,
   title={Neuro-Symbolic Geometric Abstraction (NeuSOGA):
          From Observations to Symbolic Mathematical Representations},
-  author={Li, Qingde},
+  author={Li, Qingde; et al},
   journal={arXiv preprint arXiv:2609.01408},
-  year={2026}
+  year={2026},
+  url={https://arxiv.org/abs/2609.01408}
 }
 ```
 
