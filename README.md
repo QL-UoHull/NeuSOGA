@@ -1,7 +1,6 @@
 # NeuSOGA
 
-![License: MIT](https://imge/License-MIT-green.svg
-![Status: Research Prototype](https://img.shields.io/badge/status-research%https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg
+![License: MIT](https://img.shields.io/badge/License-MITtus: Research Prototype](https://img.shields.io/badge/status-research%20prototype-bluelds.io/badge/arXiv-preprint-b
 
 **From Observations to Symbolic Mathematical Representations**
 
