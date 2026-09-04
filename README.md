@@ -73,20 +73,20 @@ The included demo is intentionally lightweight and CPU-friendly. It is meant to 
 As the project evolves, a practical research layout is:
 
 ```text
-NeuSOGA/
-├── README.md
-├── LICENSE
-├── requirements-demo.txt
-├── demo/
-│   └── neusoga_demo.py
-├── data/
-│   ├── ModelNet40/              # external download, not versioned
-│   └── checkpoints/             # external weights such as SAM, not versioned
-├── outputs/
-│   └── demo/                    # generated locally
-├── src/                         # future research implementation
-├── notebooks/                   # optional exploratory analysis
-└── docs/                        # optional paper-linked assets
+```NeuSOGA/
+```├── README.md
+```├── LICENSE
+```├── requirements-demo.txt
+```├── demo/
+```│   └── neusoga_demo.py
+```├── data/
+```│   ├── ModelNet40/              # external download, not versioned
+```│   └── checkpoints/             # external weights such as SAM, not versioned
+```├── outputs/
+```│   └── demo/                    # generated locally
+```├── src/                         # future research implementation
+```├── notebooks/                   # optional exploratory analysis
+```└── docs/                        # optional paper-linked assets
 ```
 
 ## Installation and setup
