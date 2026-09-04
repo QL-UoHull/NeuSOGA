@@ -39,7 +39,7 @@ where observations are progressively transformed into topological abstractions, 
 
 Many modern AI systems achieve impressive perceptual performance by learning latent representations from large-scale data. While effective for recognition and prediction, such representations are often difficult to interpret, manipulate, or analyse directly.
 
-NeuSOGA explores an alternative paradigm:
+**NeuSOGA** explores an alternative paradigm:
 
 ```text
 Observation
