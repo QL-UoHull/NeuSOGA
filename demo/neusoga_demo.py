@@ -1,539 +1,449 @@
-#!/usr/bin/env python3
-"""Lightweight NeuSOGA reproducibility demo.
-
-This script illustrates the prototype pipeline
-Observation -> Topology -> Geometry -> Symbol
-using either a deterministic synthetic point cloud or a simple user-provided file.
-
-It is intentionally lightweight and CPU-friendly. It does not claim full
-benchmark reproduction for the accompanying research project.
-The topology stage uses a naive O(n^2) neighborhood graph, so the demo is
-intended for small to moderate inputs rather than large-scale evaluation.
-"""
-
-from __future__ import annotations
-
-import argparse
-import csv
-import json
-import math
-import shutil
+import os
 import urllib.request
 import zipfile
-from collections import deque
-from pathlib import Path
-from typing import Iterable
+import h5py
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.ndimage import gaussian_filter
+from skimage.measure import approximate_polygon
+from skimage.feature import peak_local_max
+import math
+from numba import njit, prange
+import torch
+from segment_anything import sam_model_registry, SamPredictor
 
-MODELNET40_URL = "https://modelnet.cs.princeton.edu/ModelNet40.zip"
-MAX_INPUT_POINTS = 5000
+# ==========================================
+# 1. PLATONIST MATH ENGINE (System 2: Logic)
+# ==========================================
+@njit
+def fact(n):
+    res = 1
+    for i in range(1, n + 1): res *= i
+    return res
+
+@njit
+def comb_numba(n, k):
+    if k < 0 or k > n: return 0
+    if k == 0 or k == n: return 1
+    return fact(n) // (fact(k) * fact(n - k))
+
+@njit
+def FF_scalar(s, n):
+    if n == 0: return 0.5 if s == 0.0 else (1.0 if s > 0.0 else 0.0)
+    else: return (s / n) * FF_scalar(s, n-1) + (1.0 - s/n) * FF_scalar(s-1, n-1)
+
+@njit
+def H_scalar(s, n):
+    if n == 0: return FF_scalar(s, 0)
+    else: return FF_scalar(n * (s + 1.0) / 2.0, n)
+
+@njit
+def Lxy_scalar(x, y, slope, n):
+    if slope * x > y: return ((slope * x - y)**(2*n)) / (fact(2*n) * (slope**n))
+    return 0.0
+
+@njit
+def Lxy00_scalar(x, y, slope, n):
+    AA = 0.0
+    for k in range(1, n+1):
+        AA += ((-1.0)**(n+k) * (x**(n-k)) * (y**(n+k))) / (fact(n-k) * fact(n+k) * (slope**k))
+    return AA
+
+@njit
+def L_corner_inter_scalar(x, y, slope, n):
+    slope = abs(slope)
+    if n < 1: return 0.0
+    if y < min(0.0, slope * x):
+        return Lxy_scalar(x, y, slope, n) if x <= 0.0 else Lxy00_scalar(x, y, slope, n)
+    return 0.0
+
+@njit
+def U_Angle_inter_scalar(x, y, slope, delta, n):
+    FF_val = 0.0
+    for k in range(0, n+1):
+        FF_val += (-1.0)**k * comb_numba(n, k) * L_corner_inter_scalar(x + (n - 2*k)*delta, y, slope, n)
+    return FF_val
+
+@njit
+def impAngle4BigSlope_scalar(x, y, slope, delta, n):
+    GG = 0.0
+    for k in range(0, n+1):
+        GG += (-1.0)**k * comb_numba(n, k) * U_Angle_inter_scalar(x, y - (n - 2*k)*delta, slope, delta, n)
+    return GG / ((4.0 * delta**2)**n)
+
+@njit
+def Square_Angle_inter_scalar(x, y, slope, delta, n):
+    if slope > 1.0: return impAngle4BigSlope_scalar(x, y, slope, delta, n)
+    else:
+        return H_scalar(-x/(n*delta), n) * H_scalar(-y/(n*delta), n) - impAngle4BigSlope_scalar(y, x, 1.0/slope, delta, n)
+
+@njit
+def Point_imp_scalar(x, y, x0, y0, slope, delta, n):
+    if math.isinf(slope): return 0.0
+    if abs(slope) < 1e-32: return H_scalar((x0-x)/(n*delta), n) * H_scalar((y0-y)/(n*delta), n)
+    if slope >= 1e-32: return Square_Angle_inter_scalar(x-x0, y-y0, slope, delta, n)
+    else: return Square_Angle_inter_scalar(-(x-x0), y-y0, -slope, delta, n)
+
+@njit
+def LineSeg_imp_scalar(x, y, x0, y0, x1, y1, delta, n):
+    y01, x01 = y1 - y0, x1 - x0
+    if x01 == 0.0: return 0.0
+    slope = y01 / x01
+    if slope == 0.0:
+        if x01 > 0.0: return Point_imp_scalar(x, y, x1, y1, slope, delta, n) - Point_imp_scalar(x, y, x0, y0, slope, delta, n)
+        else: return Point_imp_scalar(x, y, x0, y0, slope, delta, n) - Point_imp_scalar(x, y, x1, y1, slope, delta, n)
+    if y01 > 0.0: return Point_imp_scalar(x, y, x1, y1, slope, delta, n) - Point_imp_scalar(x, y, x0, y0, slope, delta, n)
+    else: return Point_imp_scalar(x, y, x0, y0, slope, delta, n) - Point_imp_scalar(x, y, x1, y1, slope, delta, n)
+
+@njit(parallel=True)
+def ImpSpline2D(xx, yy, data, delta=0.01, n=2):
+    rows, cols = xx.shape
+    imp2DFun = np.zeros((rows, cols), dtype=np.float64)
+    NumP = data.shape[0]
+
+    for i in prange(rows):
+        for j in range(cols):
+            x, y = xx[i, j], yy[i, j]
+            val = 0.0
+            for p in range(NumP):
+                x0, y0 = data[p, 0], data[p, 1]
+                x1, y1 = data[(p+1)%NumP, 0], data[(p+1)%NumP, 1]
+                xDir = x0 - x1
+                if xDir > 0: sign_val = 1.0
+                elif xDir < 0: sign_val = -1.0
+                else: sign_val = 0.0
+                if sign_val != 0.0:
+                    val += sign_val * LineSeg_imp_scalar(x, y, x0, y0, x1, y1, delta, n)
+            imp2DFun[i, j] = val
+    return imp2DFun
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Run a lightweight NeuSOGA demo. "
-            "The topology stage uses a naive O(n^2) radius graph and is intended "
-            "for small to moderate inputs."
-        )
+# ==========================================
+# 2. DATASET DOWNLOADER & SAM INITIALIZATION
+# ==========================================
+def download_modelnet40():
+    url = "https://huggingface.co/datasets/Msun/modelnet40/resolve/main/modelnet40_ply_hdf5_2048.zip"
+    zip_path = "modelnet40.zip"
+    extract_folder = "modelnet40_data"
+    if not os.path.exists(extract_folder):
+        print("Downloading ModelNet40...")
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(zip_path, 'wb') as out_file:
+            out_file.write(response.read())
+        print("Extracting ModelNet40...")
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_folder)
+        os.remove(zip_path)
+    return os.path.join(extract_folder, "modelnet40_ply_hdf5_2048")
+
+def initialize_sam():
+    print("Loading Meta Segment Anything Model (SAM)...")
+    sam_checkpoint = "sam_vit_b_01ec64.pth"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    sam = sam_model_registry["vit_b"](checkpoint=sam_checkpoint)
+    sam.to(device=device)
+    return SamPredictor(sam)
+
+
+# ==========================================
+# 3. GEOMETRY UTILS & HYBRID EXTRACTION
+# ==========================================
+def project_to_arbitrary_plane(pc_3d, direction):
+    direction = np.array(direction, dtype=float)
+    direction /= np.linalg.norm(direction)
+    z_vec = direction
+    if abs(z_vec[1]) > 0.99: up = np.array([1.0, 0.0, 0.0])
+    else: up = np.array([0.0, 1.0, 0.0])
+
+    x_vec = np.cross(up, z_vec)
+    x_vec /= np.linalg.norm(x_vec)
+    y_vec = np.cross(z_vec, x_vec)
+    y_vec /= np.linalg.norm(y_vec)
+
+    proj_matrix = np.column_stack((x_vec, y_vec))
+    pc_2d = np.dot(pc_3d, proj_matrix)
+    return pc_2d
+
+def process_contour_hybrid(c, x_min, x_max, y_min, y_max, img_size, is_hole=False):
+    coarse_x = gaussian_filter(c[:, 0].astype(float), sigma=6.0, mode='wrap')
+    coarse_y = gaussian_filter(c[:, 1].astype(float), sigma=6.0, mode='wrap')
+    curve_coarse = np.column_stack((coarse_x, coarse_y))
+
+    fine_x = gaussian_filter(c[:, 0].astype(float), sigma=1.5, mode='wrap')
+    fine_y = gaussian_filter(c[:, 1].astype(float), sigma=1.5, mode='wrap')
+    curve_fine = np.column_stack((fine_x, fine_y))
+
+    deviation = np.linalg.norm(curve_coarse - curve_fine, axis=1)
+    missed_mask = (deviation > 2.0).astype(float)
+    blend_weight = gaussian_filter(missed_mask, sigma=3.0, mode='wrap')
+    blend_weight = np.clip(blend_weight, 0, 1).reshape(-1, 1)
+
+    hybrid_curve = curve_coarse * (1.0 - blend_weight) + curve_fine * blend_weight
+    sampled = approximate_polygon(hybrid_curve, tolerance=2.5)
+
+    if np.linalg.norm(sampled[0] - sampled[-1]) < 1e-5:
+        sampled = sampled[:-1]
+
+    def to_world(pts):
+        x = x_min + (pts[:, 0] / (img_size - 1)) * (x_max - x_min)
+        y = y_min + ((img_size - 1 - pts[:, 1]) / (img_size - 1)) * (y_max - y_min)
+        return np.column_stack((x, y))
+
+    poly = to_world(sampled)
+    hc_world = to_world(hybrid_curve)
+
+    # SHOELACE FORMULA: Determine orientation
+    x_pts, y_pts = poly[:, 0], poly[:, 1]
+    signed_area = np.sum(x_pts[:-1] * y_pts[1:] - x_pts[1:] * y_pts[:-1]) + (x_pts[-1] * y_pts[0] - x_pts[0] * y_pts[-1])
+
+    # EXTERNAL boundaries must be CCW (Additive, signed_area > 0)
+    # INTERNAL holes must be CW (Subtractive, signed_area < 0)
+    if not is_hole and signed_area < 0:
+        poly = poly[::-1]
+        hc_world = hc_world[::-1]
+    elif is_hole and signed_area > 0:
+        poly = poly[::-1]
+        hc_world = hc_world[::-1]
+
+    return poly, hc_world
+
+def holistic_hybrid_extraction(pc_2d, predictor, img_size=512, margin=0.15):
+    x_min, x_max = pc_2d[:, 0].min() - margin, pc_2d[:, 0].max() + margin
+    y_min, y_max = pc_2d[:, 1].min() - margin, pc_2d[:, 1].max() + margin
+
+    # 1. NEW HOLE-PRESERVING MASKING
+    img_density = np.zeros((img_size, img_size), dtype=np.float32)
+    for p in pc_2d:
+        px = int(((p[0] - x_min) / (x_max - x_min)) * (img_size - 1))
+        py = int(((p[1] - y_min) / (y_max - y_min)) * (img_size - 1))
+        cv2.circle(img_density, (px, py), radius=3, color=255.0, thickness=-1)
+
+    # Blur to bridge sparse gaps, but don't over-blur macro-holes
+    blurred_density = cv2.GaussianBlur(img_density, (15, 15), sigmaX=4, sigmaY=4)
+    _, mask_thresh = cv2.threshold(blurred_density, 20, 255, cv2.THRESH_BINARY)
+    mask_thresh = mask_thresh.astype(np.uint8)
+
+    # MORPH_CLOSE: Closes micro-gaps (15px) but leaves structural holes completely intact
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    mask_solid = cv2.morphologyEx(mask_thresh, cv2.MORPH_CLOSE, kernel)
+
+    mask_flipped = cv2.flip(mask_solid, 0)
+    img_rgb = cv2.cvtColor(mask_flipped, cv2.COLOR_GRAY2RGB)
+    predictor.set_image(img_rgb)
+
+    # 2. DISTANCE TRANSFORM & NODE DISCOVERY
+    dist_transform = cv2.distanceTransform(mask_flipped, cv2.DIST_L2, 5)
+    dist_smooth = gaussian_filter(dist_transform, sigma=3.0)
+
+    local_max_coords = peak_local_max(
+        dist_smooth,
+        min_distance=40,
+        threshold_abs=0.2 * dist_transform.max()
     )
-    parser.add_argument(
-        "--input",
-        type=Path,
-        help="Optional input point cloud (.txt, .csv, .xyz, or .off).",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path("outputs/demo"),
-        help="Directory where demo outputs will be written.",
-    )
-    parser.add_argument(
-        "--dataset-root",
-        type=Path,
-        default=Path("data"),
-        help="Root directory for external datasets such as ModelNet40.",
-    )
-    parser.add_argument(
-        "--download-modelnet40",
-        action="store_true",
-        help="Download/extract ModelNet40 into --dataset-root if available.",
-    )
-    parser.add_argument(
-        "--sam-checkpoint",
-        type=Path,
-        help="Optional external SAM checkpoint path recorded for provenance.",
-    )
-    parser.add_argument(
-        "--device",
-        choices=("cpu", "cuda"),
-        default="cpu",
-        help="Device intent recorded in run metadata only; no GPU kernels are invoked in this demo.",
-    )
-    parser.add_argument(
-        "--neighborhood-radius",
-        type=float,
-        default=0.35,
-        help="Radius used to construct the topology graph.",
-    )
-    parser.add_argument(
-        "--min-component-size",
-        type=int,
-        default=12,
-        help="Minimum connected-component size kept during segmentation.",
-    )
-    parser.add_argument(
-        "--num-points",
-        type=int,
-        default=360,
-        help="Number of points to generate for the synthetic scene.",
-    )
-    return parser.parse_args()
 
+    if len(local_max_coords) == 0:
+        _, _, _, max_loc = cv2.minMaxLoc(dist_transform)
+        prompts = np.array([[max_loc[0], max_loc[1]]])
+    else:
+        prompts = np.array([[c[1], c[0]] for c in local_max_coords])
 
-def even_split(total: int, parts: int) -> list[int]:
-    base, remainder = divmod(total, parts)
-    return [base + (1 if index < remainder else 0) for index in range(parts)]
+    labels = np.ones(len(prompts))
+    masks, _, _ = predictor.predict(point_coords=prompts, point_labels=labels, multimask_output=False)
 
+    features = []
+    colors = ['#FF9900', '#3366CC', '#109618', '#990099', '#DC3912', '#22AA99', '#994499', '#316395']
+    mask_binary = np.zeros((img_size, img_size), dtype=np.uint8)
 
-def generate_plane(count: int) -> list[tuple[float, float, float]]:
-    """Generate a planar patch translated left to stay disconnected from other primitives."""
-    rows = max(4, int(math.sqrt(count)))
-    cols = max(4, math.ceil(count / rows))
-    points: list[tuple[float, float, float]] = []
-    for row in range(rows):
-        y = -0.8 + (1.6 * row / max(rows - 1, 1))
-        for col in range(cols):
-            if len(points) >= count:
-                break
-            x = -1.6 + (1.2 * col / max(cols - 1, 1))
-            z = 0.02 * math.sin(row * 0.7) * math.cos(col * 0.5)
-            points.append((x, y, z))
-    return points
+    if len(masks) > 0:
+        mask_binary = (masks[0] * 255).astype(np.uint8)
 
+        # RETR_CCOMP: Retrieves both outer boundaries AND inner holes
+        contours, hierarchy = cv2.findContours(mask_binary, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-def generate_cylinder(count: int) -> list[tuple[float, float, float]]:
-    height_levels = max(6, int(math.sqrt(count / 2)))
-    angle_levels = max(10, math.ceil(count / height_levels))
-    radius = 0.35
-    points: list[tuple[float, float, float]] = []
-    for height_index in range(height_levels):
-        z = -0.8 + (1.6 * height_index / max(height_levels - 1, 1))
-        for angle_index in range(angle_levels):
-            if len(points) >= count:
-                break
-            theta = 2.0 * math.pi * angle_index / angle_levels
-            x = 0.8 + radius * math.cos(theta)
-            y = radius * math.sin(theta)
-            points.append((x, y, z))
-    return points
+        if hierarchy is not None:
+            for idx, c in enumerate(contours):
+                if cv2.contourArea(c) < 150:
+                    continue
 
+                # Check hierarchy: If parent != -1, this contour is an internal hole
+                is_hole = hierarchy[0][idx][3] != -1
 
-def generate_sphere(count: int) -> list[tuple[float, float, float]]:
-    latitude_levels = max(6, int(math.sqrt(count / 2)))
-    longitude_levels = max(10, math.ceil(count / latitude_levels))
-    radius = 0.45
-    points: list[tuple[float, float, float]] = []
-    for latitude_index in range(latitude_levels):
-        phi = math.pi * (0.2 + 0.6 * latitude_index / max(latitude_levels - 1, 1))
-        for longitude_index in range(longitude_levels):
-            if len(points) >= count:
-                break
-            theta = 2.0 * math.pi * longitude_index / longitude_levels
-            x = 2.0 + radius * math.sin(phi) * math.cos(theta)
-            y = 0.4 + radius * math.sin(phi) * math.sin(theta)
-            z = radius * math.cos(phi)
-            points.append((x, y, z))
-    return points
+                c = c.reshape(-1, 2)
+                diffs = np.sum(np.abs(np.diff(c, axis=0)), axis=1)
+                c = c[np.insert(diffs > 0, 0, True)]
 
+                if len(c) >= 10:
+                    poly, hc_world = process_contour_hybrid(c, x_min, x_max, y_min, y_max, img_size, is_hole)
 
-def generate_synthetic_scene(count: int) -> tuple[list[tuple[float, float, float]], list[str]]:
-    plane_count, cylinder_count, sphere_count = even_split(max(count, 36), 3)
-    plane = generate_plane(plane_count)
-    cylinder = generate_cylinder(cylinder_count)
-    sphere = generate_sphere(sphere_count)
-    points = plane + cylinder + sphere
-    labels = (
-        ["plane_seed"] * len(plane)
-        + ["cylinder_seed"] * len(cylinder)
-        + ["sphere_seed"] * len(sphere)
-    )
-    return points, labels
+                    # Color holes gray for visual distinction
+                    color = '#666666' if is_hole else colors[idx % len(colors)]
+                    features.append({
+                        'polygon': poly,
+                        'hybrid_curve': hc_world,
+                        'color': color,
+                        'name': f'Structure_{idx}',
+                        'is_hole': is_hole
+                    })
 
-
-def parse_numeric_tokens(text: str) -> list[float]:
-    cleaned = text.replace(",", " ").strip()
-    if not cleaned:
-        return []
-    values: list[float] = []
-    for token in cleaned.split():
-        try:
-            values.append(float(token))
-        except ValueError:
-            continue
-    return values
-
-
-def load_text_point_cloud(path: Path) -> list[tuple[float, float, float]]:
-    points: list[tuple[float, float, float]] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        values = parse_numeric_tokens(line)
-        if len(values) >= 3:
-            points.append((values[0], values[1], values[2]))
-    if not points:
-        raise ValueError(f"No xyz points could be read from {path}.")
-    return points
-
-
-def load_off_point_cloud(path: Path) -> list[tuple[float, float, float]]:
-    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    if not lines or lines[0] not in {"OFF", "COFF"}:
-        raise ValueError(f"{path} is not a valid OFF file.")
-    counts = lines[1].split()
-    if len(counts) < 3:
-        raise ValueError(f"OFF header in {path} is incomplete.")
-    vertex_count = int(counts[0])
-    points: list[tuple[float, float, float]] = []
-    for line in lines[2 : 2 + vertex_count]:
-        values = parse_numeric_tokens(line)
-        if len(values) >= 3:
-            points.append((values[0], values[1], values[2]))
-    if not points:
-        raise ValueError(f"No vertices could be read from {path}.")
-    return points
-
-
-def load_point_cloud(path: Path) -> list[tuple[float, float, float]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    if path.suffix.lower() == ".off":
-        return load_off_point_cloud(path)
-    return load_text_point_cloud(path)
-
-
-def download_modelnet40(dataset_root: Path) -> dict[str, str]:
-    dataset_root.mkdir(parents=True, exist_ok=True)
-    archive_path = dataset_root / "ModelNet40.zip"
-    partial_archive_path = dataset_root / "ModelNet40.zip.partial"
-    extract_root = dataset_root / "ModelNet40"
-
-    if not archive_path.exists():
-        try:
-            partial_archive_path.unlink(missing_ok=True)
-            with urllib.request.urlopen(MODELNET40_URL, timeout=60) as response:
-                with partial_archive_path.open("wb") as handle:
-                    shutil.copyfileobj(response, handle)
-            partial_archive_path.replace(archive_path)
-        except Exception as exc:
-            partial_archive_path.unlink(missing_ok=True)
-            raise RuntimeError(
-                "Failed to download ModelNet40. Remove any partial archive and retry when network access is available."
-            ) from exc
-
-    if not extract_root.exists():
-        with zipfile.ZipFile(archive_path, "r") as archive:
-            resolved_root = dataset_root.resolve()
-            top_level_dirs: set[str] = set()
-            for member in archive.infolist():
-                member_path = Path(member.filename)
-                if member_path.is_absolute() or ".." in member_path.parts:
-                    raise RuntimeError(
-                        f"Unsafe path detected while extracting ModelNet40 archive: {member.filename}"
-                    )
-                target_path = (dataset_root / member_path).resolve()
-                try:
-                    target_path.relative_to(resolved_root)
-                except ValueError as exc:
-                    raise RuntimeError(
-                        f"Unsafe path detected while extracting ModelNet40 archive: {member.filename}"
-                    ) from exc
-                if member_path.parts:
-                    top_level_dirs.add(member_path.parts[0])
-                mode = (member.external_attr >> 16) & 0o170000
-                if mode == 0o120000:
-                    raise RuntimeError(
-                        f"Symlink entries are not allowed in the ModelNet40 archive: {member.filename}"
-                    )
-                if member.is_dir():
-                    target_path.mkdir(parents=True, exist_ok=True)
-                else:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    with archive.open(member, "r") as source, target_path.open("wb") as destination:
-                        shutil.copyfileobj(source, destination)
-        detected_root: Path | None = extract_root if extract_root.exists() else None
-        if detected_root is None:
-            candidate_names = sorted(
-                name for name in top_level_dirs if name.lower().startswith("modelnet40")
-            )
-            if candidate_names:
-                detected_root = dataset_root / candidate_names[0]
-            if detected_root is not None and detected_root != extract_root and detected_root.exists():
-                if extract_root.exists():
-                    shutil.rmtree(extract_root)
-                detected_root.rename(extract_root)
-        if not extract_root.exists():
-            raise RuntimeError(
-                "ModelNet40 archive was extracted, but the dataset root could not be identified."
-            )
-
-    return {
-        "archive": str(archive_path.resolve()),
-        "extracted_root": str(extract_root.resolve()),
-        "source_url": MODELNET40_URL,
+    vis_data = {
+        'dist_transform': dist_transform,
+        'nodes': prompts,
+        'mask_binary': mask_binary
     }
 
-
-def squared_distance(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
-    return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+    return features, (x_min, x_max, y_min, y_max), vis_data
 
 
-def build_radius_graph(
-    points: list[tuple[float, float, float]], radius: float
-) -> list[list[int]]:
-    radius_sq = radius * radius
-    adjacency = [[] for _ in points]
-    for index, point in enumerate(points):
-        for neighbor_index in range(index + 1, len(points)):
-            if squared_distance(point, points[neighbor_index]) <= radius_sq:
-                adjacency[index].append(neighbor_index)
-                adjacency[neighbor_index].append(index)
-    return adjacency
+# ==========================================
+# 4. ORCHESTRATOR: BATCH PROCESSING 40 CLASSES
+# ==========================================
+MODELNET40_CLASSES = [
+    "airplane", "bathtub", "bed", "bench", "bookshelf", "bottle", "bowl", "car", "chair",
+    "cone", "cup", "curtain", "desk", "door", "dresser", "flower_pot", "glass_box",
+    "guitar", "keyboard", "lamp", "laptop", "mantel", "monitor", "night_stand",
+    "person", "piano", "plant", "radio", "range_hood", "sink", "sofa", "stairs",
+    "stool", "table", "tent", "toilet", "tv_stand", "vase", "wardrobe", "xbox"
+]
 
+def run_neuro_symbolic_pipeline():
+    print("Pre-compiling Platonist Math Engine...")
+    _ = ImpSpline2D(np.zeros((2,2)), np.zeros((2,2)), np.array([[0,0],[1,0],[0,1]]), delta=0.01)
 
-def connected_components(adjacency: list[list[int]]) -> list[list[int]]:
-    components: list[list[int]] = []
-    visited = [False] * len(adjacency)
-    for start in range(len(adjacency)):
-        if visited[start]:
-            continue
-        queue: deque[int] = deque([start])
-        visited[start] = True
-        component: list[int] = []
-        while queue:
-            node = queue.popleft()
-            component.append(node)
-            for neighbor in adjacency[node]:
-                if not visited[neighbor]:
-                    visited[neighbor] = True
-                    queue.append(neighbor)
-        components.append(component)
-    return components
+    dataset_folder = download_modelnet40()
+    h5_file = os.path.join(dataset_folder, "ply_data_train0.h5")
+    predictor = initialize_sam()
 
+    print(f"\nOpening {h5_file}...")
+    with h5py.File(h5_file, 'r') as f:
+        point_clouds = f['data'][:]
+        labels = f['label'][:]
 
-def mean(values: Iterable[float]) -> float:
-    items = list(values)
-    return sum(items) / len(items) if items else 0.0
+    test_objects = []
+    for i in range(40):
+        class_indices = np.where(labels == i)[0]
+        if len(class_indices) > 0:
+            test_objects.append((MODELNET40_CLASSES[i].capitalize(), class_indices[0]))
 
+    output_dir = "robustness_results"
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"\nFound {len(test_objects)} unique classes. Results will be saved to '{output_dir}/'")
 
-def std(values: Iterable[float]) -> float:
-    items = list(values)
-    if not items:
-        return 0.0
-    average = mean(items)
-    return math.sqrt(sum((value - average) ** 2 for value in items) / len(items))
+    proj_direction = [1, 1, 1]
 
+    dir_norm = np.array(proj_direction) / np.linalg.norm(proj_direction)
+    elev_angle = np.degrees(np.arcsin(dir_norm[2]))
+    azim_angle = np.degrees(np.arctan2(dir_norm[1], dir_norm[0]))
 
-def classify_component(component_points: list[tuple[float, float, float]]) -> tuple[str, str, dict[str, float | list[float]]]:
-    xs = [point[0] for point in component_points]
-    ys = [point[1] for point in component_points]
-    zs = [point[2] for point in component_points]
-    cx, cy, cz = mean(xs), mean(ys), mean(zs)
-    x_span = max(xs) - min(xs)
-    y_span = max(ys) - min(ys)
-    z_span = max(zs) - min(zs)
-    xy_radii = [math.hypot(x - cx, y - cy) for x, y, _ in component_points]
-    radial_3d = [math.dist(point, (cx, cy, cz)) for point in component_points]
-    xy_mean = mean(xy_radii)
-    radial_mean = mean(radial_3d)
-    xy_rel_std = (std(xy_radii) / xy_mean) if xy_mean else float("inf")
-    radial_rel_std = (std(radial_3d) / radial_mean) if radial_mean else float("inf")
-    z_std = std(zs)
-    min_span = max(min(x_span, y_span, z_span), 1e-9)
-    max_span = max(x_span, y_span, z_span)
+    for idx, (obj_name, target_idx) in enumerate(test_objects):
+        print(f"\n[{idx+1}/{len(test_objects)}] PROCESSING OBJECT: {obj_name}")
 
-    if z_std <= max(0.03, 0.08 * max(x_span, y_span, 1e-9)) and z_span <= max(
-        0.12, 0.3 * max(x_span, y_span, 1e-9)
-    ):
-        primitive = "plane"
-        symbolic = (
-            f"plane(z≈{cz:.3f}, x∈[{min(xs):.3f}, {max(xs):.3f}], "
-            f"y∈[{min(ys):.3f}, {max(ys):.3f}])"
-        )
-    elif xy_rel_std <= 0.18 and z_span >= 1.1 * max(x_span, y_span):
-        primitive = "cylinder"
-        symbolic = (
-            f"cylinder(center≈({cx:.3f}, {cy:.3f}), radius≈{xy_mean:.3f}, "
-            f"z∈[{min(zs):.3f}, {max(zs):.3f}])"
-        )
-    elif radial_rel_std <= 0.18 and (max_span / min_span) <= 1.8:
-        primitive = "sphere"
-        symbolic = (
-            f"sphere(center≈({cx:.3f}, {cy:.3f}, {cz:.3f}), "
-            f"radius≈{radial_mean:.3f})"
-        )
-    else:
-        primitive = "unknown"
-        symbolic = (
-            f"primitive(points={len(component_points)}, "
-            f"bbox=({x_span:.3f}, {y_span:.3f}, {z_span:.3f}))"
-        )
+        pc_3d = point_clouds[target_idx]
+        pc_3d = pc_3d - np.mean(pc_3d, axis=0)
+        pc_3d = pc_3d / np.max(np.linalg.norm(pc_3d, axis=1))
 
-    summary = {
-        "centroid": [cx, cy, cz],
-        "bbox_span": [x_span, y_span, z_span],
-        "xy_radius_mean": xy_mean,
-        "xy_radius_relative_std": xy_rel_std,
-        "radial_mean": radial_mean,
-        "radial_relative_std": radial_rel_std,
-        "z_std": z_std,
-    }
-    return primitive, symbolic, summary
+        pc_2d = project_to_arbitrary_plane(pc_3d, proj_direction)
 
+        features, bounds, vis_data = holistic_hybrid_extraction(pc_2d, predictor)
 
-def select_components(components: list[list[int]], min_size: int) -> list[list[int]]:
-    kept = [component for component in components if len(component) >= min_size]
-    if kept:
-        return kept
-    return [max(components, key=len)] if components else []
+        b_min, b_max = -1.2, 1.2
+        xx, yy = np.meshgrid(np.linspace(b_min, b_max, 200), np.linspace(b_min, b_max, 200))
+        full_field = np.zeros_like(xx)
 
+        for feature in features:
+            spline = ImpSpline2D(xx, yy, feature['polygon'], delta=0.005, n=2)
+            full_field += spline
 
-def downsample_points(
-    points: list[tuple[float, float, float]], labels: list[str], max_points: int
-) -> tuple[list[tuple[float, float, float]], list[str], dict[str, int] | None]:
-    if len(points) <= max_points:
-        return points, labels, None
+        # ==========================================
+        # 8-STEP VISUALIZATION GRID (2x4)
+        # ==========================================
+        fig = plt.figure(figsize=(24, 12))
+        fig.suptitle(f"Neuro-Symbolic Pipeline: {obj_name} (Projection Direction: [1, 1, 1])", fontsize=18, fontweight='bold')
+        plt.subplots_adjust(hspace=0.3, wspace=0.2, top=0.9)
 
-    indices = [
-        min(math.floor(index * len(points) / max_points), len(points) - 1)
-        for index in range(max_points)
-    ]
-    sampled_points = [points[index] for index in indices]
-    sampled_labels = [labels[index] for index in indices]
-    return (
-        sampled_points,
-        sampled_labels,
-        {
-            "original_points": len(points),
-            "retained_points": len(sampled_points),
-            "max_points": max_points,
-        },
-    )
+        # 1. Point Cloud
+        ax1 = fig.add_subplot(2, 4, 1, projection='3d')
+        ax1.scatter(pc_3d[:,0], pc_3d[:,1], pc_3d[:,2], s=2, c='gray', alpha=0.6)
+        ax1.view_init(elev=elev_angle, azim=azim_angle)
+        ax1.set_title("1. 3D Point Cloud (Matching View)", fontsize=14)
 
+        # 2. Distance Transform
+        ax2 = fig.add_subplot(2, 4, 2)
+        ax2.imshow(vis_data['dist_transform'], cmap='viridis')
+        ax2.set_title("2. Distance Transform", fontsize=14)
+        ax2.axis('off')
 
-def write_outputs(
-    output_dir: Path,
-    points: list[tuple[float, float, float]],
-    labels: list[str],
-    components: list[list[int]],
-    source: str,
-    metadata: dict[str, object],
-) -> None:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    component_ids = [-1] * len(points)
-    segment_rows: list[dict[str, object]] = []
-    symbolic_lines = [
-        "# NeuSOGA symbolic abstraction",
-        f"# Source: {source}",
-        "",
-    ]
+        # 3. Topology Nodes
+        ax3 = fig.add_subplot(2, 4, 3)
+        ax3.imshow(vis_data['dist_transform'], cmap='viridis')
+        nodes = vis_data['nodes']
+        if len(nodes) > 0:
+            ax3.scatter(nodes[:,0], nodes[:,1], c='red', s=100, marker='X', edgecolors='white')
+        ax3.set_title("3. Topology Nodes (T)", fontsize=14)
+        ax3.axis('off')
 
-    for component_id, component in enumerate(components):
-        component_points = [points[index] for index in component]
-        primitive, symbolic, summary = classify_component(component_points)
-        for index in component:
-            component_ids[index] = component_id
-        segment_rows.append(
-            {
-                "component_id": component_id,
-                "primitive": primitive,
-                "symbolic": symbolic,
-                "num_points": len(component),
-                **summary,
-            }
-        )
-        symbolic_lines.append(f"[segment {component_id}] {symbolic}")
+        # 4. SAM Segmentation
+        ax4 = fig.add_subplot(2, 4, 4)
+        ax4.imshow(vis_data['mask_binary'], cmap='gray')
+        ax4.set_title("4. Neural Segmentation", fontsize=14)
+        ax4.axis('off')
 
-    with (output_dir / "point_cloud.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["x", "y", "z", "component_id", "seed_label"])
-        for index, (x, y, z) in enumerate(points):
-            writer.writerow([f"{x:.6f}", f"{y:.6f}", f"{z:.6f}", component_ids[index], labels[index]])
+        # 5. Hybrid Contour
+        ax5 = fig.add_subplot(2, 4, 5)
+        ax5.scatter(pc_2d[:,0], pc_2d[:,1], s=1, c='lightgray', alpha=0.5)
+        for feat in features:
+            hc = feat['hybrid_curve']
+            closed_hc = np.vstack((hc, hc[0]))
+            ls = '--' if feat['is_hole'] else '-'
+            ax5.plot(closed_hc[:,0], closed_hc[:,1], c=feat['color'], lw=2, linestyle=ls)
+        ax5.set_title("5. Scale-Space Contour", fontsize=14)
+        ax5.axis('equal'); ax5.grid(True, linestyle=':')
+        ax5.set_xlim([b_min, b_max]); ax5.set_ylim([b_min, b_max])
 
-    (output_dir / "symbolic_representation.txt").write_text(
-        "\n".join(symbolic_lines) + "\n", encoding="utf-8"
-    )
-    (output_dir / "segments.json").write_text(
-        json.dumps(segment_rows, indent=2), encoding="utf-8"
-    )
-    (output_dir / "summary.json").write_text(
-        json.dumps(
-            {
-                "source": source,
-                "num_points": len(points),
-                "num_segments": len(components),
-                "metadata": metadata,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+        # 6. Sparse Polygon
+        ax6 = fig.add_subplot(2, 4, 6)
+        ax6.scatter(pc_2d[:,0], pc_2d[:,1], s=1, c='lightgray', alpha=0.5)
+        for feat in features:
+            poly = feat['polygon']
+            is_hole = feat['is_hole']
+            closed_poly = np.vstack((poly, poly[0]))
 
+            # Plot boundary
+            ls = '--' if is_hole else '-'
+            ax6.plot(closed_poly[:,0], closed_poly[:,1], c=feat['color'], lw=2, linestyle=ls, marker='o', markersize=4, markerfacecolor='black')
 
-def main() -> None:
-    args = parse_args()
+            # Visually subtract hole using white fill
+            fill_color = 'white' if is_hole else feat['color']
+            alpha_val = 1.0 if is_hole else 0.3
+            ax6.fill(closed_poly[:,0], closed_poly[:,1], color=fill_color, alpha=alpha_val)
 
-    metadata: dict[str, object] = {
-        "device": args.device,
-        "neighborhood_radius": args.neighborhood_radius,
-        "min_component_size": args.min_component_size,
-        "demo_scope": (
-            "Lightweight reproducibility demo; not a full benchmark or full research pipeline."
-        ),
-    }
+        ax6.set_title("6. Control Polygon (G)", fontsize=14)
+        ax6.axis('equal'); ax6.grid(True, linestyle=':')
+        ax6.set_xlim([b_min, b_max]); ax6.set_ylim([b_min, b_max])
 
-    if args.sam_checkpoint:
-        if not args.sam_checkpoint.exists():
-            raise FileNotFoundError(
-                f"SAM checkpoint path does not exist: {args.sam_checkpoint}"
-            )
-        metadata["sam_checkpoint"] = str(args.sam_checkpoint.resolve())
-        metadata["sam_note"] = (
-            "Checkpoint recorded for provenance only; the lightweight demo does not invoke SAM directly."
-        )
-    else:
-        metadata["sam_note"] = (
-            "No SAM checkpoint supplied. External checkpoints are required only for extended workflows."
-        )
+        # 7. Area Spline Field
+        ax7 = fig.add_subplot(2, 4, 7)
+        ax7.imshow(full_field, extent=[b_min, b_max, b_min, b_max], origin='lower', cmap='Purples', alpha=0.9)
+        ax7.set_title("7. Area Spline Field", fontsize=14)
+        ax7.axis('equal'); ax7.grid(True, linestyle=':')
+        ax7.set_xlim([b_min, b_max]); ax7.set_ylim([b_min, b_max])
 
-    if args.download_modelnet40:
-        metadata["modelnet40"] = download_modelnet40(args.dataset_root)
-    else:
-        metadata["modelnet40"] = {
-            "note": "ModelNet40 not downloaded during this run.",
-            "expected_root": str((args.dataset_root / "ModelNet40").resolve()),
-        }
+        # 8. F(x,y)=0
+        ax8 = fig.add_subplot(2, 4, 8)
+        ax8.scatter(pc_2d[:,0], pc_2d[:,1], s=1, c='lightgray', alpha=0.5)
+        ax8.contour(xx, yy, full_field, levels=[0.5], colors='purple', linewidths=2.5)
+        ax8.set_title("8. F(x,y)=0 Boundary (S)", fontsize=14)
+        ax8.axis('equal'); ax8.grid(True, linestyle=':')
+        ax8.set_xlim([b_min, b_max]); ax8.set_ylim([b_min, b_max])
 
-    if args.input:
-        points = load_point_cloud(args.input)
-        labels = ["input_point"] * len(points)
-        points, labels, downsampling = downsample_points(points, labels, MAX_INPUT_POINTS)
-        if downsampling:
-            metadata["input_downsampling"] = downsampling
-        source = str(args.input.resolve())
-    else:
-        points, labels = generate_synthetic_scene(args.num_points)
-        source = "deterministic_synthetic_scene"
-        metadata["synthetic_components"] = ["plane_seed", "cylinder_seed", "sphere_seed"]
+        save_path = os.path.join(output_dir, f"{obj_name}_111_view.png")
+        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.close(fig)
 
-    adjacency = build_radius_graph(points, args.neighborhood_radius)
-    raw_components = connected_components(adjacency)
-    components = select_components(raw_components, args.min_component_size)
-    write_outputs(args.output_dir, points, labels, components, source, metadata)
+        print(f"    --> Saved robust visualization to: {save_path}")
 
-    print("NeuSOGA demo completed.")
-    print(f"Source: {source}")
-    print(f"Segments kept: {len(components)}")
-    print(f"Outputs written to: {args.output_dir.resolve()}")
-
+    print("\nRobustness batch processing complete!")
 
 if __name__ == "__main__":
-    main()
+    run_neuro_symbolic_pipeline()
