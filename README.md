@@ -1,242 +1,351 @@
 # NeuSOGA
 
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)
-![arXiv Submission](https://img.shields.io/badge/arXiv-submission%20context-b31b1b.svg)
+![License: MIT](https://img.shields.io/badge/License-Mtatus: Research Prototype](https://img.shields.io/badge/status-research%https://img.shields.io/badge/arXiv-2609.01408-b31b Neuro-Symbolic Geometric Abstraction (NeuSOGA)
 
-**NeuSOGA** (**Neu**ro-**S**ymbolic Geometric **A**bstraction) is a research prototype for transforming raw observations into compact symbolic mathematical descriptions through **topology-guided geometric abstraction**.
+**From Observations to Symbolic Mathematical Representations**
 
-**Keywords:** neuro-symbolic learning, geometric abstraction, topology-guided segmentation, symbolic representation learning, 3D perception, reproducible research, research prototype, arXiv-linked submission
+NeuSOGA is a neuro-symbolic framework for transforming observations into explicit symbolic mathematical representations through topology-guided geometric abstraction.
 
-> Core idea: **Observation → Topology → Geometry → Symbol**
+The framework implements the abstraction hierarchy:
+
+```text
+Observation (O)
+        ↓
+Topology (T)
+        ↓
+Geometry (G)
+        ↓
+Symbol (S)
+```
+
+where observations are progressively transformed into topological abstractions, geometric abstractions, and ultimately symbolic mathematical representations.
+
 <p align="center">
-  <img src="assets/figures/Neuro-symbolic-pipeline.jpg" widthcenter">
-  <em>Overview of the NeuSOGA framework.</em>
+  assets/figures/Neuro-symbolic-pipeline.jpg
+  <br>
+  <em>Figure 1. Overview of the NeuSOGA abstraction hierarchy.</em>
 </p>
 
+---
 
-This repository is prepared as an **academic companion repository** for an arXiv-linked submission. The current public branch focuses on **clarity, reproducibility, and visibility**: it provides a lightweight runnable demo and supporting documentation while intentionally excluding heavyweight benchmark assets.
+# Research Motivation
 
+Many modern AI systems achieve impressive perceptual performance by learning latent representations from large-scale data. While effective for recognition and prediction, such representations are often difficult to interpret, manipulate, or analyse directly.
 
-## Research motivation
+NeuSOGA explores an alternative paradigm:
 
-Many modern perception systems stop at latent features or task-specific predictions. NeuSOGA instead targets **explicit symbolic structure**: observations are first organized topologically, then abstracted geometrically, and finally distilled into concise symbolic forms that can be interpreted and reused downstream.
+```text
+Observation
+      ↓
+Topology
+      ↓
+Geometry
+      ↓
+Symbol
+```
 
-The repository therefore emphasizes:
+Rather than learning geometry exclusively through statistical optimization, NeuSOGA extracts topology-aware structure, performs adaptive geometric abstraction, and synthesizes explicit symbolic mathematical representations through analytical geometry.
 
-- interpretable structure discovery from observations,
-- topology-aware segmentation before symbolic abstraction,
-- concise symbolic descriptions of geometry,
-- reproducible prototype behavior for research readers.
+The central research question is:
 
-## What is included here
+> How can symbolic mathematical representations emerge from observations through a neuro-symbolic abstraction process?
 
-This branch currently contains:
+---
 
-- a research-facing `README.md`,
-- a lightweight reproducibility demo at `demo/neusoga_demo.py`,
-- a minimal `requirements-demo.txt` describing the demo dependency footprint.
+# NeuSOGA Pipeline
 
-This branch **does not** bundle large external assets such as:
+NeuSOGA follows a four-stage abstraction hierarchy.
 
-- SAM checkpoints,
-- ModelNet40 data archives,
-- full training logs,
-- paper figures,
-- benchmark-ready experiment pipelines.
+## 1. Observation (O)
 
-Those resources must be downloaded separately by the user.
+Geometric observations are acquired from point clouds or projected views.
 
-## Pipeline overview
+Current implementation supports:
 
-The runnable demo follows the same high-level prototype story:
+- ModelNet40 point-cloud objects
+- Arbitrary-view projections
+- Normalized geometric observations
 
-1. **Observation (O)**  
-Acquire geometric observations from point clouds, projected views,
-or segmented optical inputs.
+The observation layer provides the raw spatial data from which symbolic representations are ultimately constructed.
 
-2. **Topology (T)**  
-Extract topology-aware structural cores and internal void nodes
-using Euclidean Distance Transforms.
+---
 
-3. **Geometry (G)**  
-Perform topology-guided segmentation and adaptive multi-scale
-abstraction to generate sparse geometric control polygons.
+## 2. Topology (T)
 
-4. **Symbol (S)**  
-Convert control polygons into Implicit Area Spline representations,
-yielding explicit symbolic mathematical models.
+Intrinsic structure is extracted through topology-guided analysis.
 
-The included demo is intentionally lightweight and CPU-friendly. It is meant to **illustrate the representation pipeline**, not to claim the full empirical scope of the accompanying research submission.
+NeuSOGA computes:
 
+- Euclidean Distance Transforms (EDT)
+- topology-aware structural cores
+- distance-field maxima
+- internal void structures
+- global spatial organization
 
-## Installation and setup
+The resulting topology nodes provide compact abstractions of object structure and subsequently guide perception.
 
-### 1. Clone the repository
+---
+
+## 3. Geometry (G)
+
+Topology-aware structure is transformed into sparse geometric abstractions.
+
+The geometry stage combines:
+
+- topology-guided Segment Anything (SAM) prompting
+- contour extraction
+- adaptive multi-scale scale-space abstraction
+- hybrid coarse-to-fine boundary refinement
+- sparse control-polygon generation
+
+Dense geometric observations are compressed into compact and interpretable geometric representations while preserving important structural detail.
+
+---
+
+## 4. Symbol (S)
+
+The symbolic stage converts geometric abstractions into explicit mathematical representations.
+
+NeuSOGA employs Implicit Area Splines to generate:
+
+- analytical implicit representations
+- arbitrary-order smoothness
+- additive composition
+- closed-form evaluation
+- symbolic geometric models
+
+The final representation is expressed as:
+
+```text
+F(x,y) = 0
+```
+
+providing an explicit symbolic description of the observed shape.
+
+---
+
+# Repository Contents
+
+```text
+NeuSOGA/
+│
+├── assets/
+│   └── figures/
+│
+├── demo/
+│   └── neusoga_demo.py
+│
+├── notebooks/
+│
+├── paper/
+│
+├── README.md
+├── requirements-demo.txt
+├── LICENSE
+└── CITATION.cff
+```
+
+The repository contains the reference implementation accompanying the NeuSOGA paper.
+
+---
+
+# Installation
+
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/QL-UoHull/NeuSOGA.git
+
 cd NeuSOGA
 ```
 
-### 2. Create a Python environment
+## 2. Create a Python Environment
+
+### Linux / macOS
 
 ```bash
 python -m venv .venv
+
 source .venv/bin/activate
+
 python -m pip install --upgrade pip
-python -m pip install -r requirements-demo.txt
+
+pip install -r requirements-demo.txt
 ```
 
-### 3. External resources you may need
+### Windows
 
-- **ModelNet40**: not bundled in the repository. The demo can optionally download and extract the official archive when requested.
-- **SAM checkpoints**: not bundled in the repository. If your extended workflow depends on Segment Anything, download the checkpoint separately and pass its path explicitly.
-- **GPU support**: the included demo runs on CPU. A future larger-scale implementation may benefit from CUDA/PyTorch acceleration, but that is not required for the reproducibility example included here.
+```cmd
+python -m venv .venv
 
-## Colab and Jupyter Notebook demos
+.venv\Scripts\activate
 
-To make NeuSOGA easier to test directly, you can run notebook-based demos in **Google Colab** or locally with **Jupyter Notebook**.
+python -m pip install --upgrade pip
 
-### Required first cell (Meta SAM setup)
+pip install -r requirements-demo.txt
+```
 
-NeuSOGA uses Meta's Segment Anything Model (SAM). In Colab, run this block in the **first cell** to install dependencies and download the checkpoint weights:
+---
+
+# External Resources
+
+## ModelNet40 Dataset
+
+ModelNet40 is not bundled with this repository.
+
+The NeuSOGA demo automatically downloads and extracts the dataset when executed for the first time.
+
+Users may also substitute their own point-cloud datasets if desired.
+
+## Segment Anything (SAM)
+
+NeuSOGA employs topology-guided perception using Meta's Segment Anything Model (SAM).
+
+Download the required checkpoint:
+
+```text
+sam_vit_b_01ec64.pth
+```
+
+and place it in the working directory before execution.
+
+Checkpoint source:
+
+https://github.com/facebookresearch/segment-anything
+
+## Hardware
+
+The implementation automatically detects:
+
+```text
+CPU
+CUDA GPU
+```
+
+execution environments.
+
+A GPU is not required for reproducibility but significantly accelerates large-scale experiments.
+
+---
+
+# Running NeuSOGA
+
+Execute:
 
 ```bash
-!pip install rembg onnxruntime
-!pip install opencv-python matplotlib
-!pip install git+https://github.com/facebookresearch/segment-anything.git
-!wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+python demo/neusoga_demo.py
 ```
 
-### Google Colab workflow
+The script automatically:
 
-1. Open your NeuSOGA demo notebook in Colab.
-2. Paste and run the required SAM setup block above as the first cell.
-3. Run the rest of the notebook cells in order.
-4. (Recommended) Enable GPU runtime in Colab: **Runtime → Change runtime type → GPU**.
+1. Downloads ModelNet40 if required.
+2. Loads SAM.
+3. Processes representative objects from all 40 ModelNet40 categories.
+4. Generates arbitrary-view projections along:
 
-### Local Jupyter Notebook workflow
-
-1. Start Jupyter from the repository root.
-2. Open the NeuSOGA demo notebook.
-3. Run the same SAM setup block in the first cell.
-4. Execute the remaining cells top-to-bottom.
-
-### Suggested notebook filenames
-
-- `notebooks/NeuSOGA_Demo.ipynb` — end-to-end local demo.
-- `notebooks/NeuSOGA_Colab_Demo.ipynb` — Colab-friendly variant.
-
-## Dependency summary
-
-### Runnable demo
-
-The included demo is intentionally lightweight:
-
-- Python 3.10+
-- Python standard library only
-
-### Likely external research dependencies for a fuller pipeline
-
-Depending on how the full research codebase evolves, a larger implementation may additionally rely on tools such as:
-
-- PyTorch
-- NumPy
-- Open3D / point-cloud tooling
-- Segment Anything (SAM) and its checkpoint files
-
-These heavier dependencies are **not required** to run the current demo script, but are relevant for notebook workflows that integrate SAM.
-
-## Demo usage
-
-### Quick start: deterministic synthetic example
-
-```bash
-python demo/neusoga_demo.py --output-dir outputs/demo
+```text
+[1,1,1]
 ```
 
-### Use a local point cloud file
+5. Executes the complete:
 
-Supported inputs include simple whitespace- or comma-separated `x y z` text files, plus `.off` files.
-For portability, very large input clouds are deterministically downsampled inside the demo before topology construction.
-
-```bash
-python demo/neusoga_demo.py \
-  --input /path/to/point_cloud.txt \
-  --output-dir outputs/demo_from_file
+```text
+O → T → G → S
 ```
 
-### Optionally download ModelNet40
+abstraction pipeline.
 
-```bash
-python demo/neusoga_demo.py \
-  --download-modelnet40 \
-  --dataset-root data \
-  --output-dir outputs/demo_modelnet40
+---
+
+# Outputs
+
+Results are written to:
+
+```text
+robustness_results/
 ```
 
-### Record a SAM checkpoint path for reproducibility notes
+For each object, NeuSOGA generates an eight-stage visualization illustrating:
 
-```bash
-python demo/neusoga_demo.py \
-  --sam-checkpoint /path/to/sam_vit_h_4b8939.pth \
-  --output-dir outputs/demo_with_checkpoint_note
+```text
+1. Observation (O)
+2. Euclidean Distance Transform
+3. Topology Nodes (T)
+4. Topology-Guided Segmentation
+5. Scale-Space Contour
+6. Control Polygon (G)
+7. Area Spline Field
+8. Symbolic Boundary F(x,y)=0 (S)
 ```
 
-## Expected outputs
+These visualizations provide a transparent illustration of how symbolic mathematical representations emerge from geometric observations.
 
-Running the demo writes a compact reproducibility bundle to the chosen output directory:
+---
 
-- `point_cloud.csv` — input or synthetic points with assigned segment IDs,
-- `segments.json` — per-segment statistics and primitive hypotheses,
-- `symbolic_representation.txt` — human-readable symbolic abstraction,
-- `summary.json` — run configuration and reproducibility notes.
+# Robustness Evaluation
 
-These files are intended to make it easy for research readers to inspect how the symbolic representation was produced.
+The current implementation evaluates NeuSOGA across:
 
-## Practical notes for research users
+- 40 object categories from ModelNet40
+- non-canonical viewing directions
+- arbitrary-view projection geometry
+- topology-aware segmentation
+- symbolic representation generation
 
-### ModelNet40
+The generated visualizations demonstrate the stability of the abstraction hierarchy across diverse object classes and viewing conditions.
 
-- ModelNet40 is an **external dataset** and is not redistributed here.
-- If you use the optional downloader, please ensure that dataset usage complies with the original dataset terms.
-- The included demo does not claim full benchmark reproduction from ModelNet40; it only provides a lightweight access path and a symbolic abstraction example.
+---
 
-### SAM checkpoints
+# Explainability by Construction
 
-- SAM checkpoints are **external artifacts** and must be downloaded manually.
-- The included demo records the checkpoint path for provenance, but does not ship checkpoint weights.
-- If you extend the pipeline to image-guided segmentation, checkpoint/version provenance should be reported alongside results.
+A central objective of NeuSOGA is explainability through explicit representation.
 
-### CPU/GPU behavior
+Unlike conventional latent neural representations, every stage of the abstraction hierarchy remains observable:
 
-- The included demo is designed to run on **CPU** for portability.
-- Selecting `--device cuda` only records intent in the run metadata; it does not enable accelerated kernels in this minimal prototype.
-- For larger future experiments, GPU acceleration will likely be preferable for perception and segmentation stages.
+```text
+Observation
+      ↓
+Topology
+      ↓
+Geometry
+      ↓
+Symbol
+```
 
-## Reproducibility notes
+The generated symbolic models can be inspected, edited, analysed, and evaluated directly through their mathematical representation.
 
-- The synthetic demo is deterministic and does not depend on random initialization.
-- Large external assets are intentionally excluded from version control.
-- The symbolic outputs are heuristic summaries for demonstration and documentation purposes.
-- Readers should treat this repository as a **transparent prototype companion** rather than a final benchmark package.
+---
 
-## Citation
+# Paper
 
-If you use NeuSOGA in academic work, please cite the associated paper once the public arXiv identifier is available.
-The BibTeX block below is a **template** and should be updated with the final author list, citation key, and arXiv identifier when the manuscript is public.
+**Neuro-Symbolic Geometric Abstraction (NeuSOGA): From Observations to Symbolic Mathematical Representations**
+
+arXiv:
+
+```text
+arXiv:2609.01408
+```
+
+(Update if the identifier changes.)
+
+---
+
+# Citation
 
 ```bibtex
 @article{li2026neusoga,
-  title={Neuro-Symbolic Geometric Abstraction: From Observations to Symbolic Mathematical Representations},
-  author={Li, Qingde and others},
+  title={Neuro-Symbolic Geometric Abstraction (NeuSOGA):
+         From Observations to Symbolic Mathematical Representations},
+  author={Li, Qingde},
   journal={arXiv preprint arXiv:2609.01408},
   year={2026}
-  url = {https://arxiv.org/abs/2609.01408}
 }
 ```
 
-## License
+---
 
-This repository is distributed under the MIT License. See `LICENSE`.
+# License
+
+This repository is distributed under the MIT License.
+
+See `LICENSE` for details.
