@@ -51,20 +51,21 @@ Those resources must be downloaded separately by the user.
 
 The runnable demo follows the same high-level prototype story:
 
-1. **Observation ingestion**  
-   Load a point cloud from a local file, or generate a deterministic synthetic scene.
+1. **Observation (O)**  
+Acquire geometric observations from point clouds, projected views,
+or segmented optical inputs.
 
-2. **Topology construction**  
-   Build a neighborhood graph over observations.
+2. **Topology (T)**  
+Extract topology-aware structural cores and internal void nodes
+using Euclidean Distance Transforms.
 
-3. **Topology-guided segmentation**  
-   Extract connected components as candidate object/part regions.
+3. **Geometry (G)**  
+Perform topology-guided segmentation and adaptive multi-scale
+abstraction to generate sparse geometric control polygons.
 
-4. **Geometric abstraction**  
-   Summarize each region with simple primitive-oriented statistics.
-
-5. **Symbolic representation**  
-   Convert each region summary into a concise symbolic description such as a plane-, cylinder-, or sphere-like primitive.
+4. **Symbol (S)**  
+Convert control polygons into Implicit Area Spline representations,
+yielding explicit symbolic mathematical models.
 
 The included demo is intentionally lightweight and CPU-friendly. It is meant to **illustrate the representation pipeline**, not to claim the full empirical scope of the accompanying research submission.
 
