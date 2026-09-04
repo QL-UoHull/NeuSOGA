@@ -156,9 +156,37 @@ The repository contains the reference implementation accompanying the NeuSOGA pa
 
 ---
 
-# Installation
+# Installation and Setup
 
-## 1. Clone the Repository
+The current NeuSOGA implementation was developed and validated
+primarily in **Google Colab**. The easiest way to reproduce the
+results is therefore through Colab or a compatible Jupyter
+environment.
+
+## Google Colab Setup
+
+Run the following commands in the first notebook cell:
+
+```bash
+!pip install rembg
+!pip install opencv-python matplotlib
+!pip install git+https://github.com/facebookresearch/segment-anything.git
+!wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+```
+
+The downloaded checkpoint
+
+```text
+sam_vit_b_01ec64.pth
+```
+
+will be automatically used by the NeuSOGA pipeline.
+
+---
+
+## Local Python Environment
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/QL-UoHull/NeuSOGA.git
@@ -166,7 +194,7 @@ git clone https://github.com/QL-UoHull/NeuSOGA.git
 cd NeuSOGA
 ```
 
-## 2. Create a Python Environment
+Create and activate a virtual environment:
 
 ### Linux / macOS
 
@@ -174,10 +202,6 @@ cd NeuSOGA
 python -m venv .venv
 
 source .venv/bin/activate
-
-python -m pip install --upgrade pip
-
-pip install -r requirements-demo.txt
 ```
 
 ### Windows
@@ -186,11 +210,44 @@ pip install -r requirements-demo.txt
 python -m venv .venv
 
 .venv\Scripts\activate
-
-python -m pip install --upgrade pip
-
-pip install -r requirements-demo.txt
 ```
+
+Install the required packages:
+
+```bash
+pip install rembg
+pip install opencv-python matplotlib
+pip install git+https://github.com/facebookresearch/segment-anything.git
+```
+
+Download the SAM checkpoint:
+
+```bash
+wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+```
+
+or manually download it from:
+
+https://github.com/facebookresearch/segment-anything
+
+---
+
+## Python Dependencies
+
+The current implementation requires:
+
+- Python 3.10+
+- NumPy
+- SciPy
+- OpenCV
+- Matplotlib
+- scikit-image
+- h5py
+- Numba
+- PyTorch
+- Segment Anything (SAM)
+- rembg
+
 
 ---
 
