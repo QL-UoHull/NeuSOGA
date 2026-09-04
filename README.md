@@ -1,7 +1,7 @@
 # NeuSOGA
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) 
-[![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)](https://arxiv.org/abs)
+[![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)](https://doi.org/10.48550/arXiv.2609.01408))
 [![arXiv](https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg)](
 https://doi.org/10.48550/arXiv.2609.01408)
 
