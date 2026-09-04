@@ -255,40 +255,50 @@ The current implementation requires:
 
 ## ModelNet40 Dataset
 
-ModelNet40 is not bundled with this repository.
+NeuSOGA automatically downloads and extracts the ModelNet40
+dataset when executed for the first time.
 
-The NeuSOGA demo automatically downloads and extracts the dataset when executed for the first time.
+The dataset is not bundled with this repository.
 
-Users may also substitute their own point-cloud datasets if desired.
+No manual download is required.
+
+---
 
 ## Segment Anything (SAM)
 
-NeuSOGA employs topology-guided perception using Meta's Segment Anything Model (SAM).
+NeuSOGA employs topology-guided perception using Meta's
+Segment Anything Model (SAM).
 
-Download the required checkpoint:
+The following checkpoint is required:
 
 ```text
 sam_vit_b_01ec64.pth
 ```
 
-and place it in the working directory before execution.
+The checkpoint is not distributed with this repository and
+must be downloaded separately:
 
-Checkpoint source:
+```bash
+wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+```
 
-https://github.com/facebookresearch/segment-anything
+---
 
-## Hardware
+## Hardware Requirements
 
-The implementation automatically detects:
+The implementation automatically detects available hardware:
 
 ```text
 CPU
 CUDA GPU
 ```
 
-execution environments.
+CPU execution is fully supported.
 
-A GPU is not required for reproducibility but significantly accelerates large-scale experiments.
+For large-scale robustness experiments across all 40
+ModelNet40 categories, GPU acceleration is recommended but
+not required.
+`
 
 ---
 
