@@ -1,9 +1,7 @@
 # NeuSOGA
 
-![License: MIT](https://img.shields.io/badge/License-Mtatus: Research Prototype](https://img.shields.io/badge/status-research%https://img.shields.io/badge/arXiv-2609.01408-b31b Neuro-Symbolic Geometric Abstraction (NeuSOGA)
-![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Status: Research Prototype](https://img.shields.io/badge/status-research%20prototype-blue.svg)
-![arXiv Submission](https://img.shields.io/badge/arXiv-submission%20context-b31b1b.svg)
+![License: MIT](https://imge/License-MIT-green.svg
+![Status: Research Prototype](https://img.shields.io/badge/status-research%https://img.shields.io/badge/arXiv-2609.01408-b31b1b.svg
 
 **From Observations to Symbolic Mathematical Representations**
 
