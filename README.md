@@ -447,7 +447,7 @@ Symbol
 The generated symbolic models can be inspected, edited, analysed, and evaluated directly through their mathematical representation.
 
 ---
-
+ 
 # Paper
 
 **Neuro-Symbolic Geometric Abstraction (NeuSOGA): From Observations to Symbolic Mathematical Representations**
