@@ -1,6 +1,16 @@
+import sys
+import subprocess
 import os
 import urllib.request
 import zipfile
+
+# --- Auto-Installer for SAM ---
+try:
+    import segment_anything
+except ImportError:
+    print("Installing official 'segment_anything' library from Meta's GitHub...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "git+https://github.com/facebookresearch/segment-anything.git"])
+
 import h5py
 import numpy as np
 import cv2
@@ -12,6 +22,13 @@ from skimage.feature import peak_local_max
 import math
 from numba import njit, prange
 import torch
+from segment_anything import sam_model_registry, SamPredictor
+
+# ==========================================
+# 1. PLATONIST MATH ENGINE (System 2: Logic)
+# ==========================================
+# ... [rest of your code continues here] ...
+
 from segment_anything import sam_model_registry, SamPredictor
 
 # ==========================================
@@ -141,6 +158,17 @@ def download_modelnet40():
 def initialize_sam():
     print("Loading Meta Segment Anything Model (SAM)...")
     sam_checkpoint = "sam_vit_b_01ec64.pth"
+    
+    # Check for corrupted/partial downloads (valid SAM ViT-B is ~375 MB)
+    if os.path.exists(sam_checkpoint) and os.path.getsize(sam_checkpoint) < 300_000_000:
+        print("Detected corrupted or incomplete SAM checkpoint. Removing...")
+        os.remove(sam_checkpoint)
+        
+    if not os.path.exists(sam_checkpoint):
+        print("Downloading SAM ViT-B checkpoint (~375 MB). This may take a minute...")
+        url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth"
+        urllib.request.urlretrieve(url, sam_checkpoint)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sam = sam_model_registry["vit_b"](checkpoint=sam_checkpoint)
     sam.to(device=device)
