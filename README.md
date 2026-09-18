@@ -181,7 +181,6 @@ Run the following commands in the first notebook cell:
 !pip install h5py opencv-python matplotlib scipy scikit-image numba
 !pip install git+[https://github.com/facebookresearch/segment-anything.git](https://github.com/facebookresearch/segment-anything.git)
 !wget -q [https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
-!pip install git+https://github.com/facebookresearch/segment-anything.git
 ```
 
 The downloaded checkpoint:
